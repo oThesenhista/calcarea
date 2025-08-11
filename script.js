@@ -147,8 +147,8 @@ function desenharPecas(poligono, larguraPeca, comprimentoPeca, rotacionar, ctx, 
         }
     } else if (padraoDesenho === 'tijolo') {
         let linha = 0;
-        for (let y = minYPoligono; y < maxYPoligono; y += comprimentoPx) {
-            let xOffset = (linha % 2 === 1) ? larguraPx / 2 : 0;
+        for (let y = maxYPoligono; y > (minYPoligono-comprimentoPx); y -= comprimentoPx) {
+            let xOffset = (linha % 2 === 1) ? -larguraPx / 2 : 0;
             
             for (let x = minXPoligono + xOffset; x < maxXPoligono; x += larguraPx) {
                 const retangulo = [x, y, larguraPx, comprimentoPx];
@@ -255,7 +255,7 @@ function atualizarCanvas() {
     }
     ctx.closePath();
     ctx.clip();
-    
+    ctx.lineWidth = 0.1;
     const area = calcularArea(pontosOriginais);
     const quantidade = desenharPecas(pontosCentralizados, larguraPeca, comprimentoPeca, rotacionar, ctx, escala);
 
@@ -268,7 +268,7 @@ function atualizarCanvas() {
     }
     ctx.closePath();
     ctx.strokeStyle = "#3a4572";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.stroke();
     
     // --- Lógica para Desenhar as Medidas das Paredes com novos nomes e correção de posicionamento ---
@@ -300,7 +300,9 @@ function atualizarCanvas() {
 
         // Inverte a rotação para que o texto não fique de cabeça para baixo
         if (angulo > Math.PI / 2 || angulo < -Math.PI / 2) {
-             ctx.rotate(Math.PI);
+            if (index !== 1 || parede.p1.x <= parede.p2.x) {
+				ctx.rotate(Math.PI);
+			}
         }
 
         // Para a parede traseira, o offset deve ser positivo para desenhar para baixo
@@ -342,12 +344,12 @@ document.getElementById("pecaSelect").addEventListener("change", (event) => {
         comprimentoPecaInput.value = comprimento;
         padraoDesenho = padrao;
     }
-    debounce(atualizarCanvas, 500);
+    debounce(atualizarCanvas, 1);
 });
 
 // Adiciona os event listeners para os novos botões spinner
 document.querySelectorAll(".spinner-button").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("mousedown", () => {
         const inputId = button.dataset.inputId;
         const action = button.dataset.action;
         const inputElement = document.getElementById(inputId);
@@ -361,21 +363,21 @@ document.querySelectorAll(".spinner-button").forEach(button => {
         }
         
         inputElement.value = value.toFixed(2); // Fixa em 2 casas decimais
-        debounce(atualizarCanvas, 500);
+        debounce(atualizarCanvas, 1);
     });
 });
 
 // Atualiza o canvas quando o valor do input é alterado manualmente
 document.querySelectorAll(".spinner-input").forEach(input => {
-    input.addEventListener("input", () => debounce(atualizarCanvas, 500));
+    input.addEventListener("input", () => debounce(atualizarCanvas, 1));
 });
 
 
-document.getElementById("rotacionar").addEventListener("change", () => debounce(atualizarCanvas, 500));
+document.getElementById("rotacionar").addEventListener("change", () => debounce(atualizarCanvas, 1));
 document.getElementById("modoTijoloCustom").addEventListener("change", () => {
     if (document.getElementById("pecaSelect").value === "custom") {
         padraoDesenho = document.getElementById("modoTijoloCustom").checked ? 'tijolo' : 'grade';
-        debounce(atualizarCanvas, 500);
+        debounce(atualizarCanvas, 1);
     }
 });
 
