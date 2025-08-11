@@ -270,6 +270,49 @@ function atualizarCanvas() {
     ctx.strokeStyle = "#3a4572";
     ctx.lineWidth = 2;
     ctx.stroke();
+    
+    // --- Lógica para Desenhar as Medidas das Paredes com novos nomes e correção de posicionamento ---
+    ctx.font = "bold 14px Arial";
+    ctx.fillStyle = "#3a4572";
+
+    const paredes = [
+        { name: "Área Acima", dim: paredeFrontal, p1: pontosCentralizados[0], p2: pontosCentralizados[1] },
+        { name: "Área Direita", dim: paredeDireita, p1: pontosCentralizados[1], p2: pontosCentralizados[2] },
+        { name: "Área Abaixo", dim: paredeTraseira, p1: pontosCentralizados[2], p2: pontosCentralizados[3] },
+        { name: "Área Esquerda", dim: paredeEsquerda, p1: pontosCentralizados[3], p2: pontosCentralizados[0] }
+    ];
+
+    paredes.forEach((parede, index) => {
+        const meio = {
+            x: (parede.p1.x + parede.p2.x) / 2,
+            y: (parede.p1.y + parede.p2.y) / 2
+        };
+        const angulo = Math.atan2(parede.p2.y - parede.p1.y, parede.p2.x - parede.p1.x);
+
+        ctx.save();
+        ctx.translate(meio.x, meio.y);
+        ctx.rotate(angulo);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        // Offset padrão para o texto ficar fora da parede
+        let offsetY = -15; // Distância padrão para o texto
+
+        // Inverte a rotação para que o texto não fique de cabeça para baixo
+        if (angulo > Math.PI / 2 || angulo < -Math.PI / 2) {
+             ctx.rotate(Math.PI);
+        }
+
+        // Para a parede traseira, o offset deve ser positivo para desenhar para baixo
+        if (index === 2) { 
+            offsetY = 15;
+        }
+
+        ctx.fillText(`${parede.name}: ${parede.dim.toFixed(2)}m`, 0, offsetY);
+        
+        ctx.restore();
+    });
+    // --- FIM DA NOVA LÓGICA ---
 
     document.getElementById("resultado").textContent =
         `Área: ${area.toFixed(2)} m² — Peças necessárias: ${quantidade}`;
