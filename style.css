@@ -1,0 +1,197 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+#main-wrapper {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h1, h3 {
+    text-align: center;
+    color: #3a4572;
+}
+
+#calculadoraForm {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	text-align: center;
+	width: 322px;
+}
+
+#calculadoraForm label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Esconde as setas nativas do input type="number" */
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  text-align: center; /* Centraliza o texto do input */
+}
+
+.input-spinner-container {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.spinner-button {
+    background-color: #3a4572;
+    border: none;
+	font-weight: bold;
+	color: #fff;
+    padding: 14px 18px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+}
+
+.spinner-button:hover {
+    background-color: #4c5c9e;
+	color: #fff;
+}
+
+.spinner-input {
+    flex-grow: 1;
+    border: none;
+    text-align: center;
+    padding: 14px 0px;
+    outline: none;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#pecaSelect {
+	flex-grow: 1;
+    border: none;
+    text-align: center;
+    padding: 14px 0px;
+    outline: none;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#calculadoraForm select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    text-align: center; /* Centraliza o texto do select */
+    text-align-last: center; /* Centraliza o texto no Chrome, Firefox e Edge */
+}
+
+#custom-dimensions {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+#custom-dimensions label {
+    font-weight: normal;
+}
+
+#calculadoraForm button[type="submit"] {
+    background-color: #3a4572;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: block;
+    width: 100%;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+#calculadoraForm button[type="submit"]:hover {
+    background-color: #4c5c9e;
+	color: #fff;
+}
+
+#resultado {
+    text-align: center;
+    font-size: 1.2em;
+    margin-top: 20px;
+    color: #3a4572;
+    font-weight: bold;
+}
+
+#container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+#esquerda {
+    height: -webkit-fill-available;
+}
+
+#direita {
+    flex: 1;
+	height: -webkit-fill-available;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column; /* Altera para uma coluna para empilhar o canvas e o resultado */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#desenho {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.custom-checkbox-button {
+    margin-bottom: 10px;
+}
+
+.button-like {
+    display: inline-block;
+    padding: 8px 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f4f4f4;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease;
+}
+
+.button-like:hover {
+    background-color: #4c5c9e;
+	color: #fff;
+}
+
+.custom-checkbox-button input:checked + .button-like {
+    background-color: #3a4572;
+    color: white;
+    border-color: #3a4572;
+}
