@@ -28,8 +28,9 @@ h1, h3 {
 
 #calculadoraForm label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     font-weight: bold;
+    text-align: left;
 }
 
 input[type="number"]::-webkit-inner-spin-button, 
@@ -48,25 +49,7 @@ input[type="number"] {
     border: 1px solid #ddd;
     border-radius: 4px;
     overflow: hidden;
-    margin-top: 5px;
-    margin-bottom: 10px;
-}
-
-.spinner-button {
-    background-color: #3a4572;
-    border: none;
-	font-weight: bold;
-	color: #fff;
-    padding: 14px 18px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    user-select: none;
-}
-
-.spinner-button:hover {
-    background-color: #4c5c9e;
-	color: #fff;
+    margin-bottom: 15px;
 }
 
 .spinner-input {
@@ -79,26 +62,13 @@ input[type="number"] {
     font-weight: bold;
 }
 
-#pecaSelect {
-	flex-grow: 1;
-    border: none;
-    text-align: center;
-    padding: 14px 0px;
-    outline: none;
-    font-size: 16px;
-    font-weight: bold;
-}
-
 #calculadoraForm select {
     width: 100%;
     padding: 8px;
-    margin-top: 5px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     border: 1px solid #ddd;
     border-radius: 4px;
     box-sizing: border-box;
-    text-align: center;
-    text-align-last: center;
 }
 
 #custom-dimensions {
@@ -107,10 +77,6 @@ input[type="number"] {
     border: 1px solid #eee;
     border-radius: 4px;
     background-color: #f9f9f9;
-}
-
-#custom-dimensions label {
-    font-weight: normal;
 }
 
 #resultado {
@@ -128,26 +94,25 @@ input[type="number"] {
 }
 
 #esquerda {
-    height: -webkit-fill-available;
+    flex-shrink: 0;
 }
 
 #direita {
-    flex: 1;
-	height: -webkit-fill-available;
+    flex-grow: 1;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
-    overflow: hidden;
+    min-width: 0; 
 }
 
 #desenho {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 720px; 
+    border: 1px solid #eee;
 }
 
 .custom-checkbox-button {
@@ -175,21 +140,6 @@ input[type="number"] {
     color: white;
     border-color: #3a4572;
 }
-
-.input-group {
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    transition: border-color 0.3s ease, background-color 0.3s ease;
-}
-
-.input-group.highlight {
-    border-color: #4c5c9e;
-    background-color: #f0f2f5;
-}
-
-/* --- ESTILOS DO MODAL (PAINEL FLUTUANTE) --- */
 
 #modal-backdrop {
     display: none;
@@ -239,7 +189,6 @@ input[type="number"] {
 .editor-panel .close-btn:hover {
     color: #333;
 }
-
 
 .editor-panel small {
     display: block;
@@ -297,21 +246,20 @@ input[type="number"] {
     cursor: pointer;
 }
 
-/* --- ESTILO MODIFICADO PARA OS BOTÕES DE PROJETO --- */
 .project-actions {
-    margin-top: 30px; /* Aumenta o espaço do texto de resultado */
+    margin-top: 20px;
     display: flex;
     gap: 10px;
-    justify-content: center; /* Centraliza os botões */
+    justify-content: center;
     width: 100%;
+    flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .project-actions .button-like {
-    flex: none; /* Remove o crescimento automático */
-    width: 150px; /* Define uma largura fixa */
+    flex: 0 1 150px;
 }
 
-/* Estilo para o botão de Resetar */
 #resetProjectBtn {
     background-color: #c82333;
     border-color: #bd2130;
@@ -321,4 +269,92 @@ input[type="number"] {
 #resetProjectBtn:hover {
     background-color: #a81c2a;
     border-color: #a81c2a;
+}
+
+.comodo-actions {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+#addComodoBtn {
+    width: 100%;
+    background-color: #3a4572;
+    border-color: #3a4572;
+    color: white;
+    font-weight: bold;
+    padding: 12px;
+}
+
+#addComodoBtn:hover {
+    background-color: #4c5c9e;
+}
+
+/* Adicione este bloco no final do seu arquivo style.css */
+
+#parede-editor {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+#parede-editor small {
+    display: block;
+    font-size: 0.8em;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+#parede-editor, #coluna-editor {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+/* O estilo para a tag <small> já deve funcionar, mas se não funcionar, adicione: */
+#coluna-editor small {
+    display: block;
+    font-size: 0.8em;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+#offset-controls {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+#offset-controls label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.offset-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    max-width: 150px;
+    margin: 0 auto;
+}
+
+.offset-btn {
+    background-color: #f4f4f4;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+}
+
+.offset-btn:hover {
+    background-color: #4c5c9e;
+	color: #fff;
 }

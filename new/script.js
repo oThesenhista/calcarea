@@ -1,44 +1,55 @@
-// VERSÃO 4.0 - REINTEGRAÇÃO COMPLETA DO EDITOR DE OBSTÁCULOS
-
+// VERSÃO 5.1 - CORREÇÃO NO DESENHO DAS PEÇAS
 let appState;
+let timeoutId = null;
 
+function debounce(func, delay) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(func, delay);
+}
+
+// A função de estado padrão agora inclui um viewport e uma lista de cômodos
 function getDefaultState() {
+    const pecaPadrao = {
+        largura: 0.30,
+        comprimento: 0.30,
+        padrao: 'grade',
+        rotacionar: false,
+        isCustom: false,
+        modoTijoloCustom: false,
+        offsetX: 0,
+        offsetY: 0,
+        selectedValue: 'grade,0.30,0.30' // Para sincronizar o dropdown
+    };
+
     return {
-        comodos: [
-            { 
-                id: 1, 
-                pontos: [ {x: 0, y: 0}, {x: 5, y: 0}, {x: 5, y: 5}, {x: 0, y: 5} ],
-                obstaculos: [], 
-            },
-            { 
-                id: 2,
-                pontos: [ {x: 6, y: 1}, {x: 8, y: 1}, {x: 8, y: 3}, {x: 6, y: 3} ],
-                obstaculos: [], 
-            }
-        ],
-        peca: {
-            largura: 0.30,
-            comprimento: 0.30,
-            padrao: 'grade',
-            rotacionar: false,
-            isCustom: false,
-            modoToloCustom: false
-        },
+        comodos: [{
+            id: Date.now(),
+            pontos: [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 5 }, { x: 0, y: 5 }],
+            obstaculos: [],
+            type: 'comodo', // 'comodo', 'lote', 'coluna'
+            peca: { ...pecaPadrao }
+        }],
         ui: {
-            modoAtual: 'selecao',
-            comodoAtivoId: 1,
-            verticeSendoArrastado: null, 
+            comodoAtivoId: null,
             paredeSelecionadaIndex: null,
-            obstaculoSelecionadoId: null, 
+            obstaculoSelecionadoId: null,
+            isObstacleEditorVisible: false,
+            verticeSendoArrastado: null,
+            isDragging: false,
+            isComodoDragging: false,
+            isWallDragging: false,
             isPanning: false,
             panStartX: 0,
             panStartY: 0,
-            paredeEmDestaqueIndex: null,
-            isDragging: false, 
-            isWallDragging: false,
             dragLastX: 0,
             dragLastY: 0,
-            isObstacleEditorVisible: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            isShiftHeld: false,
+            lockedAxis: null,
+            snapPoint: null,
+            modoAtual: 'selecao', // 'selecao', 'dividir_parede'
+            paredeEmDestaqueIndex: null,
         },
         viewport: {
             escala: 50,
@@ -48,20 +59,221 @@ function getDefaultState() {
     };
 }
 
-let renderedButtons = {}; 
+let renderedButtons = {};
 
 // --- Funções Auxiliares e de Desenho ---
 function pontoDentroPoligono(ponto, poligono) { let dentro = false; for (let i = 0, j = poligono.length - 1; i < poligono.length; j = i++) { const xi = poligono[i].x, yi = poligono[i].y; const xj = poligono[j].x, yj = poligono[j].y; const intersect = ((yi > ponto.y) !== (yj > ponto.y)) && (ponto.x < (xj - xi) * (ponto.y - yi) / (yj - yi) + xi); if (intersect) dentro = !dentro; } return dentro; }
 function calcularArea(poligono) { let area = 0; for (let i = 0; i < poligono.length; i++) { const j = (i + 1) % poligono.length; area += poligono[i].x * poligono[j].y; area -= poligono[j].x * poligono[i].y; } return Math.abs(area / 2); }
-function desenharPecasNaArea(ctx, poligono, obstaculos) { const { largura, comprimento, rotacionar, padrao } = appState.peca; const minXPoligono = Math.min(...poligono.map(p => p.x)); const maxXPoligono = Math.max(...poligono.map(p => p.x)); const minYPoligono = Math.min(...poligono.map(p => p.y)); const maxYPoligono = Math.max(...poligono.map(p => p.y)); let contador = 0; let larguraPx = rotacionar ? comprimento : largura; let comprimentoPx = rotacionar ? largura : comprimento; if (larguraPx <= 0 || comprimentoPx <= 0) return 0; const colideComObstaculo = (pecaRect) => { for (const obsRect of obstaculos) { if (pecaRect.x < obsRect.x + obsRect.largura && pecaRect.x + pecaRect.largura > obsRect.x && pecaRect.y < obsRect.y + obsRect.altura && pecaRect.y + pecaRect.altura > obsRect.y) return true; } return false; }; const desenharPecaSeValido = (x, y, larg, comp) => { const pecaRect = { x, y, largura: larg, altura: comp }; if (retanguloCruzaPoligono([x, y, larg, comp], poligono) && !colideComObstaculo(pecaRect)) { ctx.strokeRect(x, y, larg, comp); return true; } return false; }; if (padrao === 'grade') { for (let y = minYPoligono; y < maxYPoligono; y += comprimentoPx) { for (let x = minXPoligono; x < maxXPoligono; x += larguraPx) { if (desenharPecaSeValido(x, y, larguraPx, comprimentoPx)) contador++; } } } else if (padrao === 'tijolo') { let linha = 0; for (let y = minYPoligono; y < maxYPoligono; y += comprimentoPx) { let xOffset = (linha % 2 === 1) ? -larguraPx / 2 : 0; for (let x = minXPoligono + xOffset; x < maxXPoligono; x += larguraPx) { if (desenharPecaSeValido(x, y, larguraPx, comprimentoPx)) contador++; } linha++; } } return contador; }
+
+// *** FUNÇÃO CORRIGIDA ***
+function desenharPecasNaArea(ctx, poligono, obstaculosRenderizados, pecaConfig) {
+    const { largura, comprimento, rotacionar, padrao, offsetX, offsetY } = pecaConfig;
+
+    // As dimensões da peça em unidades do MUNDO (metros)
+    const pecaLarguraMundo = rotacionar ? comprimento : largura;
+    const pecaComprimentoMundo = rotacionar ? largura : comprimento;
+
+    if (pecaLarguraMundo <= 0 || pecaComprimentoMundo <= 0) return 0;
+
+    const minXPoligono = Math.min(...poligono.map(p => p.x));
+    const maxXPoligono = Math.max(...poligono.map(p => p.x));
+    const minYPoligono = Math.min(...poligono.map(p => p.y));
+    const maxYPoligono = Math.max(...poligono.map(p => p.y));
+
+    let contador = 0;
+
+    const colideComObstaculo = (pecaRectMundo) => {
+        for (const obsRectMundo of obstaculosRenderizados) {
+            if (pecaRectMundo.x < obsRectMundo.x + obsRectMundo.largura &&
+                pecaRectMundo.x + pecaRectMundo.largura > obsRectMundo.x &&
+                pecaRectMundo.y < obsRectMundo.y + obsRectMundo.altura &&
+                pecaRectMundo.y + pecaRectMundo.altura > obsRectMundo.y) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const desenharPecaSeValido = (x, y, larg, comp) => {
+        const pecaRectMundo = { x, y, largura: larg, altura: comp };
+        if (retanguloCruzaPoligono(pecaRectMundo, poligono) && !colideComObstaculo(pecaRectMundo)) {
+            ctx.strokeRect(pecaRectMundo.x, pecaRectMundo.y, pecaRectMundo.largura, pecaRectMundo.altura);
+            return true;
+        }
+        return false;
+    };
+
+    // CORREÇÃO: Os limites do loop devem ser em unidades do MUNDO
+    // Adicionamos um buffer para garantir que peças na borda sejam desenhadas
+    const startX = minXPoligono - pecaLarguraMundo;
+    const endX = maxXPoligono + pecaLarguraMundo;
+    const startY = minYPoligono - pecaComprimentoMundo;
+    const endY = maxYPoligono + pecaComprimentoMundo;
+
+    if (padrao === 'grade') {
+        for (let y = startY + offsetY; y < endY; y += pecaComprimentoMundo) {
+            for (let x = startX + offsetX; x < endX; x += pecaLarguraMundo) {
+                if (desenharPecaSeValido(x, y, pecaLarguraMundo, pecaComprimentoMundo)) contador++;
+            }
+        }
+    } else if (padrao === 'tijolo') {
+        let linha = 0;
+        for (let y = startY + offsetY; y < endY; y += pecaComprimentoMundo) {
+            let xOffsetTijolo = (linha % 2 === 1) ? -pecaLarguraMundo / 2 : 0;
+            for (let x = startX + offsetX + xOffsetTijolo; x < endX; x += pecaLarguraMundo) {
+                if (desenharPecaSeValido(x, y, pecaLarguraMundo, pecaComprimentoMundo)) contador++;
+            }
+            linha++;
+        }
+    }
+    return contador;
+}
+
+
 function distanciaPontoLinha(px, py, p1, p2) { const L2 = (p2.x - p1.x)**2 + (p2.y - p1.y)**2; if (L2 === 0) return Math.sqrt((px - p1.x)**2 + (py - p1.y)**2); let t = ((px - p1.x) * (p2.x - p1.x) + (py - p1.y) * (p2.y - p1.y)) / L2; t = Math.max(0, Math.min(1, t)); const projeçãoX = p1.x + t * (p2.x - p1.x); const projeçãoY = p1.y + t * (p2.y - p1.y); return Math.sqrt((px - projeçãoX)**2 + (py - projeçãoY)**2); }
-function retanguloCruzaPoligono(retangulo, poligono) { const [x, y, largura, comprimento] = retangulo; const cantos = [ { x: x, y: y }, { x: x + largura, y: y }, { x: x + largura, y: y + comprimento }, { x: x, y: y + comprimento } ]; if (cantos.some(p => pontoDentroPoligono(p, poligono))) return true; if (poligono.some(p => p.x >= x && p.x <= x + largura && p.y >= y && p.y <= y + comprimento)) return true; for (let i = 0, j = poligono.length - 1; i < poligono.length; j = i++) { if (linhaCruzaRetangulo(poligono[i], poligono[j], retangulo)) return true; } return false; }
-function linhaCruzaRetangulo(p1, p2, retangulo) { const [rx, ry, rw, rh] = retangulo; const retanguloPontos = [ { x: rx, y: ry }, { x: rx + rw, y: ry }, { x: rx + rw, y: ry + rh }, { x: rx, y: ry + rh } ]; for (let i = 0; i < 4; i++) { if (linhaCruzaLinha(p1, p2, retanguloPontos[i], retanguloPontos[(i + 1) % 4])) return true; } return false; }
+function retanguloCruzaPoligono(retangulo, poligono) {
+    const { x, y, largura, altura } = retangulo;
+    const cantos = [{ x, y }, { x: x + largura, y }, { x: x + largura, y: y + altura }, { x, y: y + altura }];
+    if (cantos.some(p => pontoDentroPoligono(p, poligono))) return true;
+    if (poligono.some(p => p.x >= x && p.x <= x + largura && p.y >= y && p.y <= y + altura)) return true;
+    for (let i = 0, j = poligono.length - 1; i < poligono.length; j = i++) {
+        if (linhaCruzaRetangulo(poligono[i], poligono[j], { x, y, width: largura, height: altura })) return true;
+    }
+    return false;
+}
+function linhaCruzaRetangulo(p1, p2, retangulo) { const [rx, ry, rw, rh] = [retangulo.x, retangulo.y, retangulo.width, retangulo.height]; const retanguloPontos = [ { x: rx, y: ry }, { x: rx + rw, y: ry }, { x: rx + rw, y: ry + rh }, { x: rx, y: ry + rh } ]; for (let i = 0; i < 4; i++) { if (linhaCruzaLinha(p1, p2, retanguloPontos[i], retanguloPontos[(i + 1) % 4])) return true; } return false; }
 function linhaCruzaLinha(p1, p2, p3, p4) { const det = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x); if (det === 0) return false; const t = ((p3.x - p1.x) * (p4.y - p3.y) - (p3.y - p1.y) * (p4.x - p3.x)) / det; const u = -((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x)) / det; return t >= 0 && t <= 1 && u >= 0 && u <= 1; }
 
-function render() {
+// --- FUNÇÕES DE GEOMETRIA E MEDIÇÃO ---
+function getLimites(pontos) {
+    if (pontos.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    const xCoords = pontos.map(p => p.x);
+    const yCoords = pontos.map(p => p.y);
+    return {
+        minX: Math.min(...xCoords),
+        maxX: Math.max(...xCoords),
+        minY: Math.min(...yCoords),
+        maxY: Math.max(...yCoords)
+    };
+}
+
+function encontrarComodoPai(coluna, todosOsComodos) {
+    const limitesColuna = getLimites(coluna.pontos);
+    const centroColuna = {
+        x: (limitesColuna.minX + limitesColuna.maxX) / 2,
+        y: (limitesColuna.minY + limitesColuna.maxY) / 2
+    };
+
+    for (const comodo of todosOsComodos) {
+        if (comodo.id !== coluna.id && comodo.type === 'comodo') {
+            if (pontoDentroPoligono(centroColuna, comodo.pontos)) {
+                return comodo;
+            }
+        }
+    }
+    return null;
+}
+
+function calcularMedidasOrtogonais(coluna, comodoPai) {
+    const limitesColuna = getLimites(coluna.pontos);
+    const medidas = [];
+
+    const origens = {
+        esquerda: { x: limitesColuna.minX, y: (limitesColuna.minY + limitesColuna.maxY) / 2 },
+        direita: { x: limitesColuna.maxX, y: (limitesColuna.minY + limitesColuna.maxY) / 2 },
+        cima: { x: (limitesColuna.minX + limitesColuna.maxX) / 2, y: limitesColuna.minY },
+        baixo: { x: (limitesColuna.minX + limitesColuna.maxX) / 2, y: limitesColuna.maxY }
+    };
+
+    let dDireita = Infinity;
+    for (let i = 0; i < comodoPai.pontos.length; i++) {
+        const p1 = comodoPai.pontos[i];
+        const p2 = comodoPai.pontos[(i + 1) % comodoPai.pontos.length];
+        if ((p1.y <= origens.direita.y && p2.y > origens.direita.y) || (p1.y > origens.direita.y && p2.y <= origens.direita.y)) {
+            const xIntersecao = p1.x + (origens.direita.y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y);
+            if (xIntersecao > origens.direita.x) {
+                const dist = xIntersecao - origens.direita.x;
+                if (dist < dDireita) {
+                    const pontoMedio = { x: (origens.direita.x + xIntersecao) / 2, y: origens.direita.y };
+                    if (pontoDentroPoligono(pontoMedio, comodoPai.pontos)) {
+                        dDireita = dist;
+                    }
+                }
+            }
+        }
+    }
+    if (dDireita !== Infinity) medidas.push({ p1: origens.direita, p2: { x: origens.direita.x + dDireita, y: origens.direita.y }, dist: dDireita, direcao: 'direita' });
+
+    let dEsquerda = Infinity;
+    for (let i = 0; i < comodoPai.pontos.length; i++) {
+        const p1 = comodoPai.pontos[i];
+        const p2 = comodoPai.pontos[(i + 1) % comodoPai.pontos.length];
+        if ((p1.y <= origens.esquerda.y && p2.y > origens.esquerda.y) || (p1.y > origens.esquerda.y && p2.y <= origens.esquerda.y)) {
+            const xIntersecao = p1.x + (origens.esquerda.y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y);
+            if (xIntersecao < origens.esquerda.x) {
+                const dist = origens.esquerda.x - xIntersecao;
+                if (dist < dEsquerda) {
+                    const pontoMedio = { x: (origens.esquerda.x + xIntersecao) / 2, y: origens.esquerda.y };
+                    if (pontoDentroPoligono(pontoMedio, comodoPai.pontos)) {
+                        dEsquerda = dist;
+                    }
+                }
+            }
+        }
+    }
+    if (dEsquerda !== Infinity) medidas.push({ p1: origens.esquerda, p2: { x: origens.esquerda.x - dEsquerda, y: origens.esquerda.y }, dist: dEsquerda, direcao: 'esquerda' });
+
+    let dBaixo = Infinity;
+    for (let i = 0; i < comodoPai.pontos.length; i++) {
+        const p1 = comodoPai.pontos[i];
+        const p2 = comodoPai.pontos[(i + 1) % comodoPai.pontos.length];
+        if ((p1.x <= origens.baixo.x && p2.x > origens.baixo.x) || (p1.x > origens.baixo.x && p2.x <= origens.baixo.x)) {
+            const yIntersecao = p1.y + (origens.baixo.x - p1.x) * (p2.y - p1.y) / (p2.x - p1.x);
+            if (yIntersecao > origens.baixo.y) {
+                const dist = yIntersecao - origens.baixo.y;
+                if (dist < dBaixo) {
+                    const pontoMedio = { x: origens.baixo.x, y: (origens.baixo.y + yIntersecao) / 2 };
+                    if (pontoDentroPoligono(pontoMedio, comodoPai.pontos)) {
+                        dBaixo = dist;
+                    }
+                }
+            }
+        }
+    }
+    if (dBaixo !== Infinity) medidas.push({ p1: origens.baixo, p2: { x: origens.baixo.x, y: origens.baixo.y + dBaixo }, dist: dBaixo, direcao: 'baixo' });
+
+    let dCima = Infinity;
+    for (let i = 0; i < comodoPai.pontos.length; i++) {
+        const p1 = comodoPai.pontos[i];
+        const p2 = comodoPai.pontos[(i + 1) % comodoPai.pontos.length];
+        if ((p1.x <= origens.cima.x && p2.x > origens.cima.x) || (p1.x > origens.cima.x && p2.x <= origens.cima.x)) {
+            const yIntersecao = p1.y + (origens.cima.x - p1.x) * (p2.y - p1.y) / (p2.x - p1.x);
+            if (yIntersecao < origens.cima.y) {
+                const dist = origens.cima.y - yIntersecao;
+                if (dist < dCima) {
+                    const pontoMedio = { x: origens.cima.x, y: (origens.cima.y + yIntersecao) / 2 };
+                    if (pontoDentroPoligono(pontoMedio, comodoPai.pontos)) {
+                        dCima = dist;
+                    }
+                }
+            }
+        }
+    }
+    if (dCima !== Infinity) medidas.push({ p1: origens.cima, p2: { x: origens.cima.x, y: origens.cima.y - dCima }, dist: dCima, direcao: 'cima' });
+
+    return medidas;
+}
+
+function render(options = {}) {
+    const isExportMode = options.modo === 'exportacao';
     const canvas = document.getElementById("desenho");
     const ctx = canvas.getContext("2d");
+
+    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+    }
+
     renderedButtons = {};
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -69,24 +281,34 @@ function render() {
     let quantidadeTotal = 0;
     const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
 
+    const layerOrder = { 'lote': 1, 'comodo': 2, 'coluna': 3 };
+    appState.comodos.sort((a, b) => {
+        const layerA = layerOrder[a.type] || 0;
+        const layerB = layerOrder[b.type] || 0;
+        return layerA - layerB;
+    });
+
     ctx.save();
     ctx.translate(appState.viewport.offsetX, appState.viewport.offsetY);
     ctx.scale(appState.viewport.escala, appState.viewport.escala);
-    
+
     appState.comodos.forEach(comodo => {
         const pontosOriginais = comodo.pontos;
         const comodoEAtivo = (comodo.id === appState.ui.comodoAtivoId);
-        areaTotal += calcularArea(pontosOriginais);
         
-        const obstaculosRenderizados = []; 
+        if (comodo.type === 'comodo') {
+            areaTotal += calcularArea(pontosOriginais);
+        }
+
+        const obstaculosRenderizados = [];
         comodo.obstaculos.forEach(obs => {
             const p1 = pontosOriginais[obs.paredeIndex];
             const p2 = pontosOriginais[(obs.paredeIndex + 1) % pontosOriginais.length];
-            if(!p1 || !p2) return;
+            if (!p1 || !p2) return;
             const vetorParedeX = p2.x - p1.x;
             const vetorParedeY = p2.y - p1.y;
-            const comprimentoParede = Math.sqrt(vetorParedeX**2 + vetorParedeY**2);
-            if(comprimentoParede === 0) return;
+            const comprimentoParede = Math.sqrt(vetorParedeX ** 2 + vetorParedeY ** 2);
+            if (comprimentoParede === 0) return;
             const posNaLinha = obs.posicao / comprimentoParede;
             const xInicial = p1.x + vetorParedeX * posNaLinha;
             const yInicial = p1.y + vetorParedeY * posNaLinha;
@@ -104,7 +326,7 @@ function render() {
             obstaculosRenderizados.push({ x: xInicial, y: yInicial - obs.altura / 2, largura: obs.largura, altura: obs.altura });
         });
 
-        if (!appState.ui.isDragging && !appState.ui.isPanning) {
+        if (comodo.type === 'comodo' && !appState.ui.isDragging && !appState.ui.isPanning) {
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(pontosOriginais[0].x, pontosOriginais[0].y);
@@ -112,70 +334,169 @@ function render() {
             ctx.closePath();
             ctx.clip();
             ctx.strokeStyle = "#ddd";
-            ctx.lineWidth = 1 / appState.viewport.escala;
-            quantidadeTotal += desenharPecasNaArea(ctx, pontosOriginais, obstaculosRenderizados);
+            ctx.lineWidth = 1 / appState.viewport.escala; // Espessura fina para as peças
+            quantidadeTotal += desenharPecasNaArea(ctx, pontosOriginais, obstaculosRenderizados, comodo.peca);
+            ctx.restore();
+        } else if (comodo.type === 'coluna') {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(pontosOriginais[0].x, pontosOriginais[0].y);
+            for (let i = 1; i < pontosOriginais.length; i++) ctx.lineTo(pontosOriginais[i].x, pontosOriginais[i].y);
+            ctx.closePath();
+            ctx.fillStyle = '#cccccc';
+            ctx.fill();
             ctx.restore();
         }
 
         for (let i = 0; i < pontosOriginais.length; i++) {
+            ctx.save();
             ctx.beginPath();
             const p1 = pontosOriginais[i];
             const p2 = pontosOriginais[(i + 1) % pontosOriginais.length];
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = comodoEAtivo ? ((appState.ui.paredeSelecionadaIndex === i) ? "#ff0000" : "#3a4572") : "#aaaaaa";
-            ctx.lineWidth = 4 / appState.viewport.escala;
+
+            if (comodo.type === 'lote') {
+                ctx.strokeStyle = "#aaaaaa";
+                ctx.lineWidth = 2 / appState.viewport.escala;
+                ctx.setLineDash([10 / appState.viewport.escala, 8 / appState.viewport.escala]);
+            } else {
+                let corDaBorda = '#aaaaaa';
+                if (comodoEAtivo) {
+                    corDaBorda = '#3a4572';
+                    if (appState.ui.paredeSelecionadaIndex === i && comodo.type !== 'coluna') {
+                        corDaBorda = '#ff0000';
+                    }
+                }
+                ctx.strokeStyle = corDaBorda;
+
+                if (comodo.type === 'comodo') {
+                    ctx.lineWidth = 0.075;
+                } else {
+                    ctx.lineWidth = 4 / appState.viewport.escala;
+                }
+
+                ctx.setLineDash([]);
+            }
+
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        if (pontosOriginais.length > 0) {
+            const limites = getLimites(pontosOriginais);
+            const centro = {
+                x: (limites.minX + limites.maxX) / 2,
+                y: (limites.minY + limites.maxY) / 2
+            };
+            ctx.beginPath();
+            ctx.arc(centro.x, centro.y, 4 / appState.viewport.escala, 0, 2 * Math.PI);
+            ctx.strokeStyle = comodoEAtivo ? '#3a4572' : '#aaaaaa';
+            ctx.lineWidth = 1.5 / appState.viewport.escala;
             ctx.stroke();
         }
 
-        if (comodoEAtivo) {
-            ctx.font = `bold ${14 / appState.viewport.escala}px Arial`;
-            ctx.fillStyle = "#3a4572";
+        if (comodoEAtivo || isExportMode) {
+            ctx.fillStyle = isExportMode ? "#000000" : "#3a4572";
             for (let i = 0; i < pontosOriginais.length; i++) {
+
+                if (comodo.type === 'lote' || comodo.type === 'coluna') {
+                    ctx.font = `${10 / appState.viewport.escala}px Arial`;
+                } else {
+                    ctx.font = `bold ${14 / appState.viewport.escala}px Arial`;
+                }
+
                 const p1 = pontosOriginais[i];
                 const p2 = pontosOriginais[(i + 1) % pontosOriginais.length];
-                const dist = Math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2);
+                const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
                 const meio = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
                 const angulo = Math.atan2(p2.y - p1.y, p2.x - p1.x);
                 ctx.save();
                 ctx.translate(meio.x, meio.y);
                 ctx.rotate(angulo);
-                let offsetY = 8 / appState.viewport.escala;
-                let textBaseline = "top";
+
+                const posicaoTexto = comodo.type === 'lote' ? -1 : 1;
+                let offsetY = (8 / appState.viewport.escala) * posicaoTexto;
+                let textBaseline = (posicaoTexto === 1) ? "top" : "bottom";
                 if (angulo > Math.PI / 2 || angulo < -Math.PI / 2) {
-                    ctx.rotate(Math.PI); 
-                    textBaseline = "bottom";
-                    offsetY = -8 / appState.viewport.escala;
+                    ctx.rotate(Math.PI);
+                    textBaseline = (posicaoTexto === 1) ? "bottom" : "top";
+                    offsetY = (-8 / appState.viewport.escala) * posicaoTexto;
                 }
+
                 ctx.textAlign = "center";
                 ctx.textBaseline = textBaseline;
                 ctx.fillText(`${dist.toFixed(2)}m`, 0, offsetY);
                 ctx.restore();
             }
-        
-            if (appState.ui.modoAtual === 'dividir_parede' && appState.ui.paredeEmDestaqueIndex !== null) {
-                const p1 = pontosOriginais[appState.ui.paredeEmDestaqueIndex];
-                const p2 = pontosOriginais[(appState.ui.paredeEmDestaqueIndex + 1) % pontosOriginais.length];
-                const meio = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-                ctx.beginPath();
-                ctx.arc(meio.x, meio.y, 6 / appState.viewport.escala, 0, 2 * Math.PI);
-                ctx.fillStyle = 'rgba(58, 69, 114, 0.5)';
-                ctx.fill();
+
+            if (comodoEAtivo && !isExportMode) {
+                if (comodo.type !== 'coluna') {
+                    if (appState.ui.modoAtual === 'dividir_parede' && appState.ui.paredeEmDestaqueIndex !== null) {
+                        const p1 = pontosOriginais[appState.ui.paredeEmDestaqueIndex];
+                        const p2 = pontosOriginais[(appState.ui.paredeEmDestaqueIndex + 1) % pontosOriginais.length];
+                        const meio = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+                        ctx.beginPath();
+                        ctx.arc(meio.x, meio.y, 6 / appState.viewport.escala, 0, 2 * Math.PI);
+                        ctx.fillStyle = 'rgba(58, 69, 114, 0.5)';
+                        ctx.fill();
+                    }
+
+                    pontosOriginais.forEach((ponto, index) => {
+                        ctx.beginPath();
+                        const handleRadius = 8 / appState.viewport.escala;
+                        ctx.arc(ponto.x, ponto.y, handleRadius, 0, 2 * Math.PI);
+                        ctx.fillStyle = (appState.ui.verticeSendoArrastado === index) ? '#ff0000' : '#3a4572';
+                        ctx.fill();
+                    });
+                }
             }
-            
-            pontosOriginais.forEach((ponto, index) => {
-                ctx.beginPath();
-                const handleRadius = 8 / appState.viewport.escala;
-                ctx.arc(ponto.x, ponto.y, handleRadius, 0, 2 * Math.PI);
-                ctx.fillStyle = (appState.ui.verticeSendoArrastado === index) ? '#ff0000' : '#3a4572';
-                ctx.fill();
-            });
         }
     });
 
+    if (comodoAtivo && comodoAtivo.type === 'coluna' && !isExportMode) {
+        const comodoPai = encontrarComodoPai(comodoAtivo, appState.comodos);
+        if (comodoPai) {
+            const medidas = calcularMedidasOrtogonais(comodoAtivo, comodoPai);
+            ctx.save();
+            ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
+            ctx.lineWidth = 1 / appState.viewport.escala;
+            ctx.setLineDash([5 / appState.viewport.escala, 3 / appState.viewport.escala]);
+            ctx.font = `${12 / appState.viewport.escala}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            medidas.forEach(medida => {
+                ctx.beginPath();
+                ctx.moveTo(medida.p1.x, medida.p1.y);
+                ctx.lineTo(medida.p2.x, medida.p2.y);
+                ctx.stroke();
+
+                const texto = medida.dist.toFixed(1);
+                const textX = (medida.p1.x + medida.p2.x) / 2;
+                const textY = (medida.p1.y + medida.p2.y) / 2;
+                if (medida.direcao === 'esquerda' || medida.direcao === 'direita') {
+                    ctx.fillText(texto, textX, textY - (10 / appState.viewport.escala));
+                } else {
+                    ctx.fillText(texto, textX + (30 / appState.viewport.escala), textY);
+                }
+            });
+            ctx.restore();
+        }
+    }
+
+    if (appState.ui.snapPoint) {
+        ctx.beginPath();
+        ctx.arc(appState.ui.snapPoint.x, appState.ui.snapPoint.y, 10 / appState.viewport.escala, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+        ctx.lineWidth = 2 / appState.viewport.escala;
+        ctx.stroke();
+    }
+
     ctx.restore();
 
-    if (comodoAtivo && appState.ui.paredeSelecionadaIndex !== null) {
+    if (comodoAtivo && appState.ui.paredeSelecionadaIndex !== null && !isExportMode && comodoAtivo.type !== 'coluna') {
         const buttonWidth = 150, buttonHeight = 35, gap = 10;
         const totalWidth = (buttonWidth * 2) + gap;
         const startX = (canvas.width - totalWidth) / 2;
@@ -198,12 +519,127 @@ function render() {
         });
     }
 
+    if (comodoAtivo && appState.ui.paredeSelecionadaIndex === null && !isExportMode) {
+        const btnAlterarWidth = 140, btnDuplicarWidth = 100, btnDeletarWidth = 100, buttonHeight = 35, gap = 10;
+        const totalWidth = btnAlterarWidth + gap + btnDuplicarWidth + gap + btnDeletarWidth;
+        const startX = (canvas.width - totalWidth) / 2;
+        const y = canvas.height - buttonHeight - 20;
+
+        renderedButtons['ciclarTipo'] = { x: startX, y, width: btnAlterarWidth, height: buttonHeight };
+        const btnAlterar = renderedButtons['ciclarTipo'];
+        ctx.fillStyle = '#3a4572';
+        ctx.beginPath();
+        ctx.roundRect(btnAlterar.x, btnAlterar.y, btnAlterar.width, btnAlterar.height, 8);
+        ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Alterar Tipo', btnAlterar.x + btnAlterar.width / 2, btnAlterar.y + btnAlterar.height / 2);
+
+        const duplicarX = startX + btnAlterarWidth + gap;
+        renderedButtons['duplicarComodo'] = { x: duplicarX, y, width: btnDuplicarWidth, height: buttonHeight };
+        const btnDuplicar = renderedButtons['duplicarComodo'];
+        ctx.fillStyle = '#17a2b8';
+        ctx.beginPath();
+        ctx.roundRect(btnDuplicar.x, btnDuplicar.y, btnDuplicar.width, btnDuplicar.height, 8);
+        ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('Duplicar', btnDuplicar.x + btnDuplicar.width / 2, btnDuplicar.y + btnDuplicar.height / 2);
+
+        const deletarX = duplicarX + btnDuplicarWidth + gap;
+        renderedButtons['deletarComodo'] = { x: deletarX, y, width: btnDeletarWidth, height: buttonHeight };
+        const btnDeletar = renderedButtons['deletarComodo'];
+        ctx.fillStyle = '#c82333';
+        ctx.beginPath();
+        ctx.roundRect(btnDeletar.x, btnDeletar.y, btnDeletar.width, btnDeletar.height, 8);
+        ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('Deletar', btnDeletar.x + btnDeletar.width / 2, btnDeletar.y + btnDeletar.height / 2);
+    }
+
+    sincronizarPainelPeca();
+    
     document.getElementById("resultado").textContent = `Área Total: ${areaTotal.toFixed(2)} m² — Peças necessárias: ${quantidadeTotal ? quantidadeTotal : 'Calculando...'}`;
     gerenciarVisibilidadePainelObstaculo();
     atualizarListaDeObstaculos();
+
+    const paredeEditor = document.getElementById('parede-editor');
+    const inputTamanhoParede = document.getElementById('tamanhoParede');
+    if (comodoAtivo && appState.ui.paredeSelecionadaIndex !== null && comodoAtivo.type !== 'coluna') {
+        paredeEditor.style.display = 'block';
+        const p1 = comodoAtivo.pontos[appState.ui.paredeSelecionadaIndex];
+        const p2 = comodoAtivo.pontos[(appState.ui.paredeSelecionadaIndex + 1) % comodoAtivo.pontos.length];
+        const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+        if (document.activeElement !== inputTamanhoParede) {
+            inputTamanhoParede.value = dist.toFixed(2);
+        }
+    } else {
+        paredeEditor.style.display = 'none';
+    }
+
+    const colunaEditor = document.getElementById('coluna-editor');
+    if (comodoAtivo && comodoAtivo.type === 'coluna') {
+        colunaEditor.style.display = 'block';
+        const larguraInput = document.getElementById('larguraColuna');
+        const alturaInput = document.getElementById('alturaColuna');
+        const limites = getLimites(comodoAtivo.pontos);
+        const largura = limites.maxX - limites.minX;
+        const altura = limites.maxY - limites.minY;
+
+        if (document.activeElement !== larguraInput) {
+            larguraInput.value = largura.toFixed(2);
+        }
+        if (document.activeElement !== alturaInput) {
+            alturaInput.value = altura.toFixed(2);
+        }
+    } else {
+        colunaEditor.style.display = 'none';
+    }
 }
 
-// --- Funções de UI e Interação ---
+function ajustarTamanhoParede(novoTamanho) {
+    const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+    if (!comodoAtivo || appState.ui.paredeSelecionadaIndex === null) return;
+
+    const paredeIndex = appState.ui.paredeSelecionadaIndex;
+    const p1 = comodoAtivo.pontos[paredeIndex];
+    const p2_index = (paredeIndex + 1) % comodoAtivo.pontos.length;
+    const p2 = comodoAtivo.pontos[p2_index];
+
+    const vetorX = p2.x - p1.x;
+    const vetorY = p2.y - p1.y;
+    const comprimentoAtual = Math.sqrt(vetorX ** 2 + vetorY ** 2);
+
+    if (comprimentoAtual === 0) return;
+
+    const vetorNormalizadoX = vetorX / comprimentoAtual;
+    const vetorNormalizadoY = vetorY / comprimentoAtual;
+
+    comodoAtivo.pontos[p2_index].x = p1.x + vetorNormalizadoX * novoTamanho;
+    comodoAtivo.pontos[p2_index].y = p1.y + vetorNormalizadoY * novoTamanho;
+
+    render();
+}
+
+function ajustarTamanhoColuna(novaLargura, novaAltura) {
+    const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+    if (!comodoAtivo || comodoAtivo.type !== 'coluna') return;
+
+    const limites = getLimites(comodoAtivo.pontos);
+    const pAncora = { x: limites.minX, y: limites.minY };
+
+    comodoAtivo.pontos = [
+        { x: pAncora.x, y: pAncora.y },
+        { x: pAncora.x + novaLargura, y: pAncora.y },
+        { x: pAncora.x + novaLargura, y: pAncora.y + novaAltura },
+        { x: pAncora.x, y: pAncora.y + novaAltura }
+    ];
+
+    render();
+}
 
 function converterTelaParaMapa(mouseX, mouseY) {
     const { escala, offsetX, offsetY } = appState.viewport;
@@ -217,20 +653,18 @@ function getInteracaoSobMouse(mouseX, mouseY) {
 
     for (let i = appState.comodos.length - 1; i >= 0; i--) {
         const comodo = appState.comodos[i];
-        if (comodo.id === appState.ui.comodoAtivoId) {
+        if (comodo.id === appState.ui.comodoAtivoId && comodo.type !== 'coluna') {
             for (let j = 0; j < comodo.pontos.length; j++) {
                 const ponto = comodo.pontos[j];
-                const pontoTelaX = ponto.x * escala + offsetX;
-                const pontoTelaY = ponto.y * escala + offsetY;
-                const dist = Math.sqrt((mouseX - pontoTelaX)**2 + (mouseY - pontoTelaY)**2);
+                const dist = Math.sqrt((pontoMapa.x - ponto.x) ** 2 + (pontoMapa.y - ponto.y) ** 2) * escala;
                 if (dist <= 8) {
                     return { tipo: 'vertice', comodoId: comodo.id, index: j };
                 }
             }
             for (let j = 0; j < comodo.pontos.length; j++) {
-                const p1_tela = { x: comodo.pontos[j].x * escala + offsetX, y: comodo.pontos[j].y * escala + offsetY };
-                const p2_tela = { x: comodo.pontos[(j + 1) % comodo.pontos.length].x * escala + offsetX, y: comodo.pontos[(j + 1) % comodo.pontos.length].y * escala + offsetY };
-                if (distanciaPontoLinha(mouseX, mouseY, p1_tela, p2_tela) < 5) {
+                const p1 = comodo.pontos[j];
+                const p2 = comodo.pontos[(j + 1) % comodo.pontos.length];
+                if (distanciaPontoLinha(pontoMapa.x, pontoMapa.y, p1, p2) * escala < 5) {
                     resultado = { tipo: 'parede', comodoId: comodo.id, index: j };
                 }
             }
@@ -244,7 +678,118 @@ function getInteracaoSobMouse(mouseX, mouseY) {
     return resultado;
 }
 
-function gerenciarVisibilidadePainelObstaculo() { 
+function adicionarNovoComodo() {
+    const novoId = Date.now();
+    const pecaPadrao = {
+        largura: 0.30,
+        comprimento: 0.30,
+        padrao: 'grade',
+        rotacionar: false,
+        isCustom: false,
+        modoTijoloCustom: false,
+        offsetX: 0,
+        offsetY: 0,
+        selectedValue: 'grade,0.30,0.30'
+    };
+    const novoComodo = {
+        id: novoId,
+        pontos: [{ x: 1, y: 6 }, { x: 5, y: 6 }, { x: 5, y: 10 }, { x: 1, y: 10 }],
+        obstaculos: [],
+        type: 'comodo',
+        peca: { ...pecaPadrao }
+    };
+    appState.comodos.push(novoComodo);
+    appState.ui.comodoAtivoId = novoId;
+    appState.ui.paredeSelecionadaIndex = null;
+    appState.ui.modoAtual = 'selecao';
+    render();
+}
+
+function deletarComodoAtivo() {
+    if (!appState.ui.comodoAtivoId) return;
+
+    if (appState.comodos.length <= 1) {
+        alert("Não é possível deletar o último cômodo.");
+        return;
+    }
+
+    if (confirm('Tem certeza que deseja deletar este cômodo? A ação não pode ser desfeita.')) {
+        appState.comodos = appState.comodos.filter(c => c.id !== appState.ui.comodoAtivoId);
+        appState.ui.comodoAtivoId = null;
+        render();
+    }
+}
+
+function ciclarTipoComodo() {
+    const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+    if (comodoAtivo) {
+        switch (comodoAtivo.type) {
+            case 'comodo':
+                comodoAtivo.type = 'lote';
+                break;
+            case 'lote':
+                comodoAtivo.type = 'coluna';
+                break;
+            case 'coluna':
+                comodoAtivo.type = 'comodo';
+                break;
+            default:
+                comodoAtivo.type = 'comodo';
+        }
+        appState.ui.paredeSelecionadaIndex = null;
+        render();
+    }
+}
+
+function duplicarComodoAtivo() {
+    const comodoOriginal = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+    if (!comodoOriginal) return;
+
+    const novoComodo = JSON.parse(JSON.stringify(comodoOriginal));
+    novoComodo.id = Date.now();
+
+    const offset = 0.5;
+    novoComodo.pontos.forEach(p => {
+        p.x += offset;
+        p.y += offset;
+    });
+
+    appState.comodos.push(novoComodo);
+    appState.ui.comodoAtivoId = novoComodo.id;
+    render();
+}
+
+function encontrarPontoDeSnap(pontoArrastado, comodoIdArrastado) {
+    const snapRadius = 10 / appState.viewport.escala;
+    let bestSnap = null;
+    let minDistance = Infinity;
+
+    for (const comodo of appState.comodos) {
+        if (comodo.id === comodoIdArrastado) continue;
+
+        for (const ponto of comodo.pontos) {
+            const distancia = Math.sqrt((pontoArrastado.x - ponto.x) ** 2 + (pontoArrastado.y - ponto.y) ** 2);
+            if (distancia < snapRadius && distancia < minDistance) {
+                minDistance = distancia;
+                bestSnap = { x: ponto.x, y: ponto.y };
+            }
+        }
+
+        const limites = getLimites(comodo.pontos);
+        const centro = {
+            x: (limites.minX + limites.maxX) / 2,
+            y: (limites.minY + limites.maxY) / 2
+        };
+        const distanciaCentro = Math.sqrt((pontoArrastado.x - centro.x) ** 2 + (pontoArrastado.y - centro.y) ** 2);
+        if (distanciaCentro < snapRadius && distanciaCentro < minDistance) {
+            minDistance = distanciaCentro;
+            bestSnap = { x: centro.x, y: centro.y };
+        }
+    }
+    return bestSnap;
+}
+
+function gerenciarVisibilidadePainelObstaculo() {
     const painel = document.getElementById('obstacle-editor');
     const backdrop = document.getElementById('modal-backdrop');
     if (appState.ui.isObstacleEditorVisible) {
@@ -260,12 +805,15 @@ function atualizarListaDeObstaculos() {
     const listaUI = document.getElementById('obstacleList');
     const editorTitle = document.querySelector('#obstacle-editor h3');
     const editorButton = document.getElementById('addObstacleBtn');
-    listaUI.innerHTML = ''; 
+    listaUI.innerHTML = '';
     if (!appState.ui.isObstacleEditorVisible) return;
     const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
-    if (!comodoAtivo) return;
+    if (!comodoAtivo || appState.ui.paredeSelecionadaIndex === null) {
+        listaUI.innerHTML = '<li>Selecione uma parede primeiro.</li>';
+        return;
+    }
 
-    const obstaculosDaParede = comodoAtivo.obstaculos.filter( obs => obs.paredeIndex === appState.ui.paredeSelecionadaIndex );
+    const obstaculosDaParede = comodoAtivo.obstaculos.filter(obs => obs.paredeIndex === appState.ui.paredeSelecionadaIndex);
     if (obstaculosDaParede.length === 0) {
         listaUI.innerHTML = '<li>Nenhum obstáculo nesta parede.</li>';
     } else {
@@ -357,11 +905,75 @@ function fecharEditorDeObstaculos() {
     render();
 }
 
+function salvarProjeto() { try { const dadosSalvos = JSON.stringify(appState); localStorage.setItem('projetoPlantaBaixa', dadosSalvos); alert('Projeto salvo com sucesso!'); } catch (error) { console.error("Erro ao salvar o projeto:", error); alert('Ocorreu um erro ao salvar o projeto.'); } }
 
-// --- Lógica dos Modos ---
+function carregarProjeto() {
+    const dadosSalvos = localStorage.getItem('projetoPlantaBaixa');
+    if (dadosSalvos) {
+        try {
+            const estadoCarregado = JSON.parse(dadosSalvos);
+            // Migração de projetos antigos
+            estadoCarregado.comodos.forEach(c => {
+                 if (c.peca === undefined) {
+                    c.peca = {
+                        largura: 0.30, comprimento: 0.30, padrao: 'grade', rotacionar: false,
+                        isCustom: false, modoTijoloCustom: false, offsetX: 0, offsetY: 0, 
+                        selectedValue: 'grade,0.30,0.30'
+                    };
+                }
+                if (c.peca.offsetX === undefined) c.peca.offsetX = 0;
+                if (c.peca.offsetY === undefined) c.peca.offsetY = 0;
+            });
+            appState = estadoCarregado;
+            render();
+            alert('Projeto carregado com sucesso!');
+        } catch (error) {
+            console.error("Erro ao carregar o projeto:", error);
+            alert('Não foi possível carregar o projeto. Os dados podem estar corrompidos.');
+        }
+    } else {
+        alert('Nenhum projeto salvo encontrado.');
+    }
+}
+
+function exportarComoImagem() { render({ modo: 'exportacao' }); const canvasOriginal = document.getElementById('desenho'); const margem = 30; const tempCanvas = document.createElement('canvas'); tempCanvas.width = canvasOriginal.width + (margem * 2); tempCanvas.height = canvasOriginal.height + (margem * 2); const tempCtx = tempCanvas.getContext('2d'); tempCtx.fillStyle = 'white'; tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height); tempCtx.drawImage(canvasOriginal, margem, margem); const urlImagem = tempCanvas.toDataURL('image/png'); const link = document.createElement('a'); link.href = urlImagem; link.download = 'plano-calculado.png'; document.body.appendChild(link); link.click(); document.body.removeChild(link); render(); }
+function resetarProjeto() {
+    if (confirm('Tem certeza que deseja resetar o projeto? Todo o progresso não salvo será perdido.')) {
+        localStorage.removeItem('projetoPlantaBaixa');
+        appState = getDefaultState();
+        render();
+    }
+}
+
+// SINCRONIZA O PAINEL DE PEÇAS COM O CÔMODO ATIVO
+function sincronizarPainelPeca() {
+    const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+    const painelPecas = document.getElementById('calculadoraForm');
+
+    if (comodoAtivo && comodoAtivo.type === 'comodo') {
+        painelPecas.style.opacity = '1';
+        painelPecas.style.pointerEvents = 'auto';
+
+        const peca = comodoAtivo.peca;
+        document.getElementById('pecaSelect').value = peca.selectedValue;
+        document.getElementById('rotacionar').checked = peca.rotacionar;
+        document.getElementById('larguraPeca').value = peca.largura;
+        document.getElementById('comprimentoPeca').value = peca.comprimento;
+        document.getElementById('modoTijoloCustom').checked = peca.modoTijoloCustom;
+
+        const customDimensionsDiv = document.getElementById("custom-dimensions");
+        customDimensionsDiv.style.display = peca.isCustom ? 'block' : 'none';
+
+    } else {
+        painelPecas.style.opacity = '0.5';
+        painelPecas.style.pointerEvents = 'none';
+    }
+}
 
 function handleMouseDownSelecao(e, mouseX, mouseY) {
     const interacao = getInteracaoSobMouse(mouseX, mouseY);
+    appState.ui.isShiftHeld = e.shiftKey;
+
     if (interacao.tipo === 'vertice') {
         appState.ui.verticeSendoArrastado = interacao.index;
         appState.ui.isDragging = true;
@@ -373,18 +985,31 @@ function handleMouseDownSelecao(e, mouseX, mouseY) {
             appState.ui.isDragging = true;
             appState.ui.dragLastX = mouseX;
             appState.ui.dragLastY = mouseY;
+            appState.ui.dragStartX = mouseX;
+            appState.ui.dragStartY = mouseY;
+            appState.ui.lockedAxis = null;
         } else {
             appState.ui.paredeSelecionadaIndex = interacao.index;
             appState.ui.modoAtual = 'selecao';
         }
     } else if (interacao.tipo === 'comodo') {
-        appState.ui.comodoAtivoId = interacao.comodoId;
-        appState.ui.paredeSelecionadaIndex = null;
+        if (appState.ui.comodoAtivoId === interacao.comodoId) {
+            appState.ui.isComodoDragging = true;
+            appState.ui.isDragging = true;
+            appState.ui.dragLastX = mouseX;
+            appState.ui.dragLastY = mouseY;
+            appState.ui.dragStartX = mouseX;
+            appState.ui.dragStartY = mouseY;
+            appState.ui.lockedAxis = null;
+        } else {
+            appState.ui.comodoAtivoId = interacao.comodoId;
+            appState.ui.paredeSelecionadaIndex = null;
+        }
     } else {
         appState.ui.comodoAtivoId = null;
         appState.ui.paredeSelecionadaIndex = null;
     }
-    if (interacao.tipo !== 'parede') {
+    if (interacao.tipo !== 'parede' && interacao.tipo !== 'vertice') {
         appState.ui.modoAtual = 'selecao';
     }
     render();
@@ -393,25 +1018,42 @@ function handleMouseDownSelecao(e, mouseX, mouseY) {
 function handleMouseMoveSelecao(e, mouseX, mouseY) {
     const canvas = e.target;
     const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
-    if (!comodoAtivo) {
-        canvas.style.cursor = 'default';
-        return;
-    }
-    if (appState.ui.verticeSendoArrastado !== null) {
+    
+    if (appState.ui.verticeSendoArrastado !== null && comodoAtivo) {
         canvas.style.cursor = 'grabbing';
-        const novasCoords = converterTelaParaMapa(mouseX, mouseY);
+        let novasCoords = converterTelaParaMapa(mouseX, mouseY);
+        appState.ui.snapPoint = encontrarPontoDeSnap(novasCoords, comodoAtivo.id);
+        if (appState.ui.snapPoint) {
+            novasCoords = appState.ui.snapPoint;
+        }
         comodoAtivo.pontos[appState.ui.verticeSendoArrastado].x = novasCoords.x;
         comodoAtivo.pontos[appState.ui.verticeSendoArrastado].y = novasCoords.y;
         render();
         return;
     }
-    if (appState.ui.isWallDragging) {
+    if (appState.ui.isWallDragging && comodoAtivo) {
         canvas.style.cursor = 'grabbing';
+        let deltaX = mouseX - appState.ui.dragLastX;
+        let deltaY = mouseY - appState.ui.dragLastY;
+
+        if (appState.ui.isShiftHeld) {
+            if (appState.ui.lockedAxis === null) {
+                const totalDeltaX = Math.abs(mouseX - appState.ui.dragStartX);
+                const totalDeltaY = Math.abs(mouseY - appState.ui.dragStartY);
+                if (totalDeltaX > 5 || totalDeltaY > 5) {
+                    appState.ui.lockedAxis = totalDeltaX > totalDeltaY ? 'x' : 'y';
+                }
+            }
+            if (appState.ui.lockedAxis === 'x') {
+                deltaY = 0;
+            } else if (appState.ui.lockedAxis === 'y') {
+                deltaX = 0;
+            }
+        }
+
         const paredeIndex = appState.ui.paredeSelecionadaIndex;
         const v1_index = paredeIndex;
         const v2_index = (paredeIndex + 1) % comodoAtivo.pontos.length;
-        const deltaX = mouseX - appState.ui.dragLastX;
-        const deltaY = mouseY - appState.ui.dragLastY;
         const deltaMapX = deltaX / appState.viewport.escala;
         const deltaMapY = deltaY / appState.viewport.escala;
         comodoAtivo.pontos[v1_index].x += deltaMapX;
@@ -423,15 +1065,81 @@ function handleMouseMoveSelecao(e, mouseX, mouseY) {
         render();
         return;
     }
+    if (appState.ui.isComodoDragging && comodoAtivo) {
+        canvas.style.cursor = 'move';
+        let deltaX = mouseX - appState.ui.dragLastX;
+        let deltaY = mouseY - appState.ui.dragLastY;
+
+        if (appState.ui.isShiftHeld) {
+            if (appState.ui.lockedAxis === null) {
+                const totalDeltaX = Math.abs(mouseX - appState.ui.dragStartX);
+                const totalDeltaY = Math.abs(mouseY - appState.ui.dragStartY);
+                if (totalDeltaX > 5 || totalDeltaY > 5) {
+                    appState.ui.lockedAxis = totalDeltaX > totalDeltaY ? 'x' : 'y';
+                }
+            }
+            if (appState.ui.lockedAxis === 'x') {
+                deltaY = 0;
+            } else if (appState.ui.lockedAxis === 'y') {
+                deltaX = 0;
+            }
+        }
+
+        const deltaMapX = deltaX / appState.viewport.escala;
+        const deltaMapY = deltaY / appState.viewport.escala;
+
+        let finalDeltaX = deltaMapX;
+        let finalDeltaY = deltaMapY;
+        appState.ui.snapPoint = null;
+
+        const limitesAtivo = getLimites(comodoAtivo.pontos);
+        const centroAtivo = {
+            x: (limitesAtivo.minX + limitesAtivo.maxX) / 2,
+            y: (limitesAtivo.minY + limitesAtivo.maxY) / 2
+        };
+        const centroFuturo = { x: centroAtivo.x + deltaMapX, y: centroAtivo.y + deltaMapY };
+        let snapPoint = encontrarPontoDeSnap(centroFuturo, comodoAtivo.id);
+
+        if (snapPoint) {
+            finalDeltaX = snapPoint.x - centroAtivo.x;
+            finalDeltaY = snapPoint.y - centroAtivo.y;
+            appState.ui.snapPoint = snapPoint;
+        } else {
+            for (const ponto of comodoAtivo.pontos) {
+                const pontoFuturo = { x: ponto.x + deltaMapX, y: ponto.y + deltaMapY };
+                snapPoint = encontrarPontoDeSnap(pontoFuturo, comodoAtivo.id);
+                if (snapPoint) {
+                    finalDeltaX = snapPoint.x - ponto.x;
+                    finalDeltaY = snapPoint.y - ponto.y;
+                    appState.ui.snapPoint = snapPoint;
+                    break;
+                }
+            }
+        }
+
+        comodoAtivo.pontos.forEach(ponto => {
+            ponto.x += finalDeltaX;
+            ponto.y += finalDeltaY;
+        });
+
+        appState.ui.dragLastX += finalDeltaX * appState.viewport.escala;
+        appState.ui.dragLastY += finalDeltaY * appState.viewport.escala;
+        render();
+        return;
+    }
     const interacao = getInteracaoSobMouse(mouseX, mouseY);
-    canvas.style.cursor = (interacao.tipo === 'vertice') ? 'grab' : (interacao.tipo ? 'pointer' : 'default');
+    canvas.style.cursor = (interacao.tipo === 'vertice' || interacao.tipo === 'comodo') ? 'grab' : (interacao.tipo ? 'pointer' : 'default');
 }
 
 function handleMouseUpSelecao() {
     const precisaRenderizar = appState.ui.isDragging;
     appState.ui.verticeSendoArrastado = null;
     appState.ui.isWallDragging = false;
+    appState.ui.isComodoDragging = false;
     appState.ui.isDragging = false;
+    appState.ui.snapPoint = null;
+    appState.ui.isShiftHeld = false;
+    appState.ui.lockedAxis = null;
     if (precisaRenderizar) {
         render();
     }
@@ -442,7 +1150,7 @@ function handleMouseMoveDividirParede(e, mouseX, mouseY) {
     const interacao = getInteracaoSobMouse(mouseX, mouseY);
     const paredeIndex = (interacao.comodoId === appState.ui.comodoAtivoId && interacao.tipo === 'parede') ? interacao.index : null;
     let precisaRenderizar = false;
-    if (paredeIndex !== null) {
+    if (paredeIndex !== null && paredeIndex === appState.ui.paredeSelecionadaIndex) {
         canvas.style.cursor = 'copy';
         if (appState.ui.paredeEmDestaqueIndex !== paredeIndex) {
             appState.ui.paredeEmDestaqueIndex = paredeIndex;
@@ -475,24 +1183,95 @@ function handleMouseDownDividirParede(e, mouseX, mouseY) {
     render();
 }
 
-
-// --- Event Listeners Setup ---
 function setupEventListeners() {
     const canvas = document.getElementById('desenho');
 
-    // CORREÇÃO: Listener para o clique direito (contextmenu)
+    document.getElementById("pecaSelect").addEventListener("change", (event) => {
+        const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+        if (!comodoAtivo) return;
+
+        const selectedValue = event.target.value;
+        comodoAtivo.peca.selectedValue = selectedValue;
+
+        if (selectedValue === "custom") {
+            comodoAtivo.peca.isCustom = true;
+        } else {
+            comodoAtivo.peca.isCustom = false;
+            const [padrao, largura, comprimento] = selectedValue.split(",");
+            comodoAtivo.peca.padrao = padrao;
+            comodoAtivo.peca.largura = parseFloat(largura);
+            comodoAtivo.peca.comprimento = parseFloat(comprimento);
+        }
+        render();
+    });
+
+    const criarHandlerParaInputPeca = (propriedade) => (e) => {
+        const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+        if (comodoAtivo && comodoAtivo.peca.isCustom) {
+            comodoAtivo.peca[propriedade] = parseFloat(e.target.value) || 0;
+            debounce(render, 300);
+        }
+    };
+
+    const criarHandlerParaCheckboxPeca = (propriedade) => (e) => {
+        const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+        if (comodoAtivo) {
+            comodoAtivo.peca[propriedade] = e.target.checked;
+            if (propriedade === 'modoTijoloCustom' && comodoAtivo.peca.isCustom) {
+                comodoAtivo.peca.padrao = e.target.checked ? 'tijolo' : 'grade';
+            }
+            render();
+        }
+    };
+
+    document.getElementById("larguraPeca").addEventListener("input", criarHandlerParaInputPeca('largura'));
+    document.getElementById("comprimentoPeca").addEventListener("input", criarHandlerParaInputPeca('comprimento'));
+    document.getElementById("rotacionar").addEventListener("change", criarHandlerParaCheckboxPeca('rotacionar'));
+    document.getElementById("modoTijoloCustom").addEventListener("change", criarHandlerParaCheckboxPeca('modoTijoloCustom'));
+
+    document.getElementById('tamanhoParede').addEventListener('change', (e) => {
+        const novoTamanho = parseFloat(e.target.value);
+        if (!isNaN(novoTamanho) && novoTamanho > 0) {
+            ajustarTamanhoParede(novoTamanho);
+        } else {
+            render();
+        }
+    });
+
+    const larguraColunaInput = document.getElementById('larguraColuna');
+    const alturaColunaInput = document.getElementById('alturaColuna');
+    const Fg_coluna_recalcular = () => {
+        const novaLargura = parseFloat(larguraColunaInput.value);
+        const novaAltura = parseFloat(alturaColunaInput.value);
+        if (!isNaN(novaLargura) && novaLargura > 0 && !isNaN(novaAltura) && novaAltura > 0) {
+            ajustarTamanhoColuna(novaLargura, novaAltura);
+        } else {
+            render();
+        }
+    };
+    larguraColunaInput.addEventListener('change', Fg_coluna_recalcular);
+    alturaColunaInput.addEventListener('change', Fg_coluna_recalcular);
+
+    document.getElementById('saveProjectBtn').addEventListener('click', salvarProjeto);
+    document.getElementById('loadProjectBtn').addEventListener('click', carregarProjeto);
+    document.getElementById('exportProjectBtn').addEventListener('click', exportarComoImagem);
+    document.getElementById('resetProjectBtn').addEventListener('click', resetarProjeto);
+    document.getElementById('addComodoBtn').addEventListener('click', adicionarNovoComodo);
+
+    document.querySelector('#obstacle-editor .close-btn').addEventListener('click', fecharEditorDeObstaculos);
+    document.getElementById('modal-backdrop').addEventListener('click', fecharEditorDeObstaculos);
+    document.getElementById('addObstacleBtn').addEventListener('click', salvarObstaculo);
+
     canvas.addEventListener('contextmenu', (e) => {
-        e.preventDefault(); // Impede o menu do navegador de aparecer
+        e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         const interacao = getInteracaoSobMouse(mouseX, mouseY);
-
         if (interacao.tipo === 'vertice') {
             const comodoAtivo = appState.comodos.find(c => c.id === interacao.comodoId);
             if (comodoAtivo && comodoAtivo.pontos.length > 3) {
                 comodoAtivo.pontos.splice(interacao.index, 1);
-                // Reseta a seleção de parede para evitar bugs com índices
                 appState.ui.paredeSelecionadaIndex = null;
                 render();
             } else {
@@ -502,7 +1281,7 @@ function setupEventListeners() {
     });
 
     canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 1) {
+        if (e.button === 1) { // Middle mouse button
             e.preventDefault();
             appState.ui.isPanning = true;
             appState.ui.panStartX = e.clientX;
@@ -513,23 +1292,35 @@ function setupEventListeners() {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        if (appState.ui.paredeSelecionadaIndex !== null) {
-            for (const key in renderedButtons) {
-                const btn = renderedButtons[key];
-                if (mouseX >= btn.x && mouseX <= btn.x + btn.width && mouseY >= btn.y && mouseY <= btn.y + btn.height) {
-                    if (key === 'dividirParede') {
-                        appState.ui.modoAtual = (appState.ui.modoAtual === 'dividir_parede') ? 'selecao' : 'dividir_parede';
-                        render();
-                        return;
-                    }
-                    if (key === 'editarObstaculos') {
-                        appState.ui.isObstacleEditorVisible = true;
-                        render();
-                        return;
-                    }
+
+        for (const key in renderedButtons) {
+            const btn = renderedButtons[key];
+            if (mouseX >= btn.x && mouseX <= btn.x + btn.width && mouseY >= btn.y && mouseY <= btn.y + btn.height) {
+                if (key === 'dividirParede') {
+                    appState.ui.modoAtual = (appState.ui.modoAtual === 'dividir_parede') ? 'selecao' : 'dividir_parede';
+                    render();
+                    return;
+                }
+                if (key === 'editarObstaculos') {
+                    appState.ui.isObstacleEditorVisible = true;
+                    render();
+                    return;
+                }
+                if (key === 'ciclarTipo') {
+                    ciclarTipoComodo();
+                    return;
+                }
+                if (key === 'duplicarComodo') {
+                    duplicarComodoAtivo();
+                    return;
+                }
+                if (key === 'deletarComodo') {
+                    deletarComodoAtivo();
+                    return;
                 }
             }
         }
+
         if (appState.ui.modoAtual === 'selecao') {
             handleMouseDownSelecao(e, mouseX, mouseY);
         } else if (appState.ui.modoAtual === 'dividir_parede') {
@@ -568,7 +1359,7 @@ function setupEventListeners() {
             handleMouseUpSelecao(e);
         }
     });
-    
+
     canvas.addEventListener('mouseout', () => {
         canvas.style.cursor = 'default';
         if (appState.ui.paredeEmDestaqueIndex !== null) {
@@ -578,14 +1369,14 @@ function setupEventListeners() {
     });
 
     canvas.addEventListener('wheel', (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         const zoomIntensity = 0.1;
-        const direcao = e.deltaY > 0 ? -1 : 1; 
+        const direcao = e.deltaY > 0 ? -1 : 1;
         const escalaAntiga = appState.viewport.escala;
-        const novaEscala = Math.max(5, escalaAntiga * (1 + direcao * zoomIntensity));
+        const novaEscala = Math.max(0.1, escalaAntiga * (1 + direcao * zoomIntensity));
         const mouseAntesX = (mouseX - appState.viewport.offsetX) / escalaAntiga;
         const mouseAntesY = (mouseY - appState.viewport.offsetY) / escalaAntiga;
         appState.viewport.escala = novaEscala;
@@ -594,15 +1385,68 @@ function setupEventListeners() {
         render();
     });
 
-    // CORREÇÃO: Listeners do modal e formulário
-    document.querySelector('#obstacle-editor .close-btn').addEventListener('click', fecharEditorDeObstaculos);
-    document.getElementById('modal-backdrop').addEventListener('click', fecharEditorDeObstaculos);
-    document.getElementById('addObstacleBtn').addEventListener('click', salvarObstaculo);
+    window.addEventListener('resize', () => render());
+
+    document.getElementById('offset-controls').addEventListener('click', (e) => {
+        const button = e.target.closest('.offset-btn');
+        if (!button) return;
+        
+        const comodoAtivo = appState.comodos.find(c => c.id === appState.ui.comodoAtivoId);
+        if (!comodoAtivo || comodoAtivo.type !== 'comodo') {
+            alert("Por favor, selecione um cômodo editável primeiro.");
+            return;
+        }
+
+        const axis = button.dataset.axis;
+        const direction = parseInt(button.dataset.direction, 10);
+        const step = 0.05; // Movimento de 5cm por clique
+
+        if (axis === 'x') {
+            comodoAtivo.peca.offsetX += direction * step;
+        } else if (axis === 'y') {
+            comodoAtivo.peca.offsetY += direction * step;
+        }
+
+        debounce(render, 50);
+    });
 }
 
-// --- Inicialização da Aplicação ---
 function iniciarApp() {
-    appState = getDefaultState();
+    const dadosSalvos = localStorage.getItem('projetoPlantaBaixa');
+    if (dadosSalvos) {
+        try {
+            appState = JSON.parse(dadosSalvos);
+            // Migração de projetos antigos
+            if (appState.comodos === undefined) {
+                // Estrutura muito antiga, reseta para o padrão
+                appState = getDefaultState();
+            } else {
+                 appState.comodos.forEach(c => {
+                    if (c.isLote !== undefined) {
+                        c.type = c.isLote ? 'lote' : 'comodo';
+                        delete c.isLote;
+                    } else if (c.type === undefined) {
+                        c.type = 'comodo';
+                    }
+                    if (c.peca === undefined) {
+                        c.peca = {
+                            largura: 0.30, comprimento: 0.30, padrao: 'grade', rotacionar: false,
+                            isCustom: false, modoTijoloCustom: false, offsetX: 0, offsetY: 0,
+                            selectedValue: 'grade,0.30,0.30'
+                        };
+                    }
+                     if (c.peca.offsetX === undefined) c.peca.offsetX = 0;
+                     if (c.peca.offsetY === undefined) c.peca.offsetY = 0;
+                });
+            }
+        } catch (e) {
+            console.error("Não foi possível carregar dados salvos.", e);
+            appState = getDefaultState();
+        }
+    } else {
+        appState = getDefaultState();
+    }
+
     setupEventListeners();
     render();
 }
