@@ -1,15 +1,17 @@
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+html, body {
+    height: 100%;
     margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f4f4f4;
     color: #333;
 }
 
 #main-wrapper {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
+    margin: 0 auto;
     box-sizing: border-box;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 h1, h3 {
@@ -42,10 +44,17 @@ input[type="number"] {
 .input-spinner-container {
     display: flex;
     align-items: center;
-    border: 1px solid #ddd;
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 15px;
+}
+
+.input-spinner-container input {
+    margin: 5px;
+	font-weight: 100;
+	font-size: 16px;
+	border: 1px solid #ccc;
+    border-radius: 5px;
 }
 
 .spinner-input {
@@ -84,34 +93,43 @@ input[type="number"] {
 }
 
 #container {
-    gap: 20px;
+    display: flex;
     align-items: flex-start;
-	position: relative;
+    flex-grow: 1; /* Faz o container ocupar o espaço vertical restante */
+    overflow: hidden; /* Previne barras de rolagem indesejadas no container */
 }
 
 #esquerda {
+    width: 360px; /* Largura fixa para o painel de controle */
     flex-shrink: 0;
+    height: 100%;
+    position: sticky; /* "Gruda" o painel no topo */
+    top: 20px;
+    overflow-y: auto; /* Adiciona rolagem apenas para esta coluna */
+    background-color: #fff;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
 
 #direita {
-    width: 100%; /* Ocupa toda a largura disponível */
-    flex-grow: 1;
+    flex-grow: 1; /* Ocupa todo o espaço restante */
     background-color: #fff;
-    border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 0; 
+	padding: 0px 20px;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 #desenho {
     width: 100%;
-    height: 720px; 
-    border: 1px solid #eee;
+    flex-grow: 1; /* Faz o canvas ocupar o espaço vertical disponível */
+    border-bottom: 1px solid #eee;
+    min-height: 400px;
 }
-
 .custom-checkbox-button {
     margin-bottom: 10px;
 }
@@ -138,34 +156,6 @@ input[type="number"] {
     border-color: #3a4572;
 }
 
-#modal-backdrop {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: transparent; /* Alterado para transparente */
-    z-index: 999;
-}
-
-#modal-backdrop.visible {
-    display: block;
-}
-
-.editor-panel {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 350px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    z-index: 1000;
-}
-
 .editor-panel.visible {
     display: block;
 }
@@ -178,6 +168,7 @@ input[type="number"] {
     cursor: pointer;
     line-height: 1;
     padding: 0;
+
 }
 .editor-panel .close-btn:hover {
     color: #333;
@@ -189,54 +180,6 @@ input[type="number"] {
     color: #666;
     margin-top: -5px;
     margin-bottom: 10px;
-}
-
-.editor-panel button#addObstacleBtn {
-    width: 100%;
-    padding: 12px;
-    box-sizing: border-box;
-    color: white;
-    border: none;
-}
-
-#obstacleList {
-    list-style: none;
-    padding: 0;
-    margin-top: 15px;
-    text-align: left;
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-#obstacleList li {
-    background-color: #f9f9f9;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-#obstacleList li:hover {
-    background-color: #f0f2f5;
-}
-
-#obstacleList li.editing {
-    background-color: #e0e7ff;
-    border-left: 4px solid #007bff;
-}
-
-#obstacleList .delete-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 5px 8px;
-    border-radius: 4px;
-    cursor: pointer;
 }
 
 .project-actions-top {
@@ -256,14 +199,6 @@ input[type="number"] {
     width: 100%;
     flex-shrink: 0;
     flex-wrap: wrap;
-}
-
-.project-actions-top .button-like {
-    flex: 0 1 150px;
-}
-
-.project-actions-bottom .button-like {
-    flex: 0 1 150px;
 }
 
 #resetProjectBtn {
@@ -296,8 +231,6 @@ input[type="number"] {
     background-color: #4c5c9e;
 }
 
-/* Adicione este bloco no final do seu arquivo style.css */
-
 #parede-editor {
     margin-top: 20px;
     padding-top: 15px;
@@ -318,7 +251,6 @@ input[type="number"] {
     border-top: 1px solid #eee;
 }
 
-/* O estilo para a tag <small> já deve funcionar, mas se não funcionar, adicione: */
 #coluna-editor small {
     display: block;
     font-size: 0.8em;
@@ -378,34 +310,18 @@ input[type="number"] {
     border-color: #1e7e34;
 }
 
-
-.floating-modal {
-    display: none; /* Escondido por padrão */
-    position: absolute; /* Flutua sobre o conteúdo */
-    top: 20px;
-    left: 20px;
-    width: 362px; /* Largura do formulário + padding */
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-    z-index: 1000;
-    flex-shrink: 0;
-}
-
 .floating-modal.visible {
     display: block; /* Torna visível via JavaScript */
 }
 
 .modal-header {
     display: flex;
+	width: 100%;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 10px;
+    padding: 15px 20px;
     background-color: #3a4572;
     color: white;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    cursor: move; /* Indica que pode ser arrastado */
 }
 
 .modal-header h3 {
@@ -416,7 +332,7 @@ input[type="number"] {
     border: none;
 }
 
-.modal-header .close-btn {
+.modal-header .close-btn{
     background: none;
     border: none;
     font-size: 2rem;
@@ -426,6 +342,11 @@ input[type="number"] {
     padding: 0;
     opacity: 0.7;
 }
+
+#closeEsquerdaBtn {
+	display: none;
+}
+
 .modal-header .close-btn:hover {
     opacity: 1;
 }
@@ -434,7 +355,6 @@ input[type="number"] {
     padding: 20px;
 }
 
-/* Ajusta o painel de obstáculos para usar a nova estrutura */
 .editor-panel {
     position: absolute; /* Sobrescreve 'fixed' se houver */
     top: 150px;
@@ -442,7 +362,6 @@ input[type="number"] {
     transform: none; /* Remove o 'translate' */
 }
 
-/* Garante que o painel da esquerda não tenha o formulário centralizado */
 #esquerda .modal-content #calculadoraForm {
     text-align: left;
 }
@@ -451,3 +370,152 @@ input[type="number"] {
 #custom-dimensions label[for="juntaVertical"] {
     margin-top: 10px;
 }
+
+#view-options-editor {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+#mostrarMedidasToggle {
+	display: none;
+}
+
+.medidas-btn {
+	width: -webkit-fill-available;
+	text-align: center;
+}
+
+#texto-central-editor {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+#texto-central-editor label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-align: left;
+}
+
+#texto-central-editor input {
+    width: 100%;
+	height: 42px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+#texto-central-editor input[type="number"] {
+    width: 72px;
+}
+
+#texto-central-editor input[type="number"]::-webkit-inner-spin-button, 
+#texto-central-editor input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: auto;
+  margin: 0;
+}
+
+.rotation-control {
+    margin-top: 15px;
+}
+
+.rotation-control label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.rotation-control input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+#texto-central-editor label[for="tamanhoTexto"] {
+    margin-top: 10px;
+}
+
+.color-control {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.color-control label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.color-control input[type="color"] {
+    width: 100%;
+    height: 48px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0 5px;
+    box-sizing: border-box;
+}
+
+/* --- ESTILOS MODIFICADOS PARA A BARRA DE FERRAMENTAS DO CANVAS --- */
+
+#direita {
+    position: relative; /* Necessário para o posicionamento absoluto do filho */
+}
+
+#canvas-toolbar {
+    position: absolute;
+    top: 50%; /* Alinha o topo do container ao meio */
+    right: 35px;
+    transform: translateY(-50%); /* Puxa o container para cima pela metade de sua altura */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10;
+}
+
+.toolbar-btn {
+    width: 80px;  /* Dobro do tamanho original (40px) */
+    height: 80px; /* Dobro do tamanho original (40px) */
+    border: none;
+    border-radius: 12px; /* Aumentado para manter a proporção */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px; /* Aumentado para dar mais espaço interno */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.2s ease-in-out;
+}
+
+.toolbar-btn img {
+    width: 100%;
+    height: 100%;
+}
+
+.toolbar-btn:hover {
+    transform: scale(1.1);
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    background-color: #aaa !important;
+}
+
+.toolbar-btn.active {
+    background-color: #c82333 !important;
+    box-shadow: 0 0 10px rgba(200, 35, 51, 0.7);
+}
+
+/* Cores específicas */
+#toolbarAddComodo { background-color: #28a745; }
+#toolbarCiclarTipo { background-color: #3a4572; }
+#toolbarDuplicar { background-color: #17a2b8; }
+#toolbarDeletar { background-color: #c82333; }
+#toolbarDividirParede { background-color: #3a4572; }

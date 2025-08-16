@@ -7,16 +7,13 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<input type="file" id="fileInput" accept=".planta,.json" style="display: none;">
-    <div id="modal-backdrop"></div>
-
+    <input type="file" id="fileInput" accept=".planta,.json" style="display: none;">
+    
     <div id="main-wrapper">
-        <h1>Calculadora de Quantidade de Peças por Área²</h1>
-
         <div id="container">
-            <div id="esquerda" class="floating-modal">
+            <div id="esquerda">
                 <div class="modal-header">
-                    <h3>Configurações do Cômodo</h3>
+                    <h3>Configurações</h3>
                     <button id="closeEsquerdaBtn" class="close-btn">&times;</button>
                 </div>
                 <div class="modal-content">
@@ -48,7 +45,7 @@
                             <div class="input-spinner-container">
                                 <input type="number" step="0.01" value="0.5" id="comprimentoPeca" class="spinner-input">
                             </div>
-							<label>Espaçamento Horizontal (Junta)</label>
+                            <label>Espaçamento Horizontal (Junta)</label>
                             <div class="input-spinner-container">
                                 <input type="number" step="0.01" value="0.002" id="juntaHorizontal" class="spinner-input">
                             </div>
@@ -56,7 +53,7 @@
                             <div class="input-spinner-container">
                                 <input type="number" step="0.01" value="0.002" id="juntaVertical" class="spinner-input">
                             </div>
-							
+                            
                             <div class="custom-checkbox-button">
                                 <input type="checkbox" id="modoTijoloCustom" style="display: none;">
                                 <label for="modoTijoloCustom" class="button-like">Padrão Tijolo</label>
@@ -79,6 +76,13 @@
                             </div>
                         </div>
                     </form>
+                    
+                    <div id="view-options-editor" style="display: none;">
+                         <div class="custom-checkbox-button">
+                            <input type="checkbox" id="mostrarMedidasToggle" checked>
+                            <label for="mostrarMedidasToggle" class="button-like medidas-btn">Mostrar Medidas</label>
+                        </div>
+                    </div>                    
 
                     <div id="parede-editor" style="display: none;">
                         <label for="tamanhoParede">Tamanho da Parede (m)</label>
@@ -97,58 +101,56 @@
                             <input type="number" step="0.01" id="alturaColuna" class="spinner-input">
                         </div>
                         <small>Pressione Enter para aplicar</small>
+                        <div class="rotation-control">
+                            <label for="rotacaoColuna">Rotação (<span id="rotacaoValor">0</span>°)</label>
+                            <input type="range" id="rotacaoColuna" min="0" max="360" step="5" value="0">
+                        </div>
+                        <div class="color-control">
+                            <label for="corColuna">Cor da Coluna</label>
+                            <input type="color" id="corColuna">
+                        </div>
                     </div>
+                    <div id="texto-central-editor" style="display: none;">
+                            <label for="textoCentral">Texto Central</label>
+                            <div class="input-spinner-container">
+                                <input type="text" id="textoCentral" placeholder="Ex: Quarto, Cozinha..." maxlength="50">
+                                <input type="number" step="1" id="tamanhoTexto">
+                    </div>
+                    </div>  
                 </div>
             </div>
             <div id="direita">
-				<div class="project-actions-top">
-					<button type="button" id="addComodoBtn" class="button-like">Novo Cômodo</button>
-					<button type="button" id="resetProjectBtn" class="button-like">Resetar</button>
-				</div>
                 <canvas id="desenho"></canvas>
+
+                <div id="canvas-toolbar">
+                    <button id="toolbarAddComodo" title="Novo Cômodo" class="toolbar-btn">
+                        <img src="image/new.png" alt="Novo Cômodo">
+                    </button>
+                    <button id="toolbarCiclarTipo" title="Alterar Tipo" class="toolbar-btn" disabled>
+                        <img src="image/change.png" alt="Alterar Tipo">
+                    </button>
+                    <button id="toolbarDuplicar" title="Duplicar" class="toolbar-btn" disabled>
+                        <img src="image/duplicate.png" alt="Duplicar">
+                    </button>
+                    <button id="toolbarDeletar" title="Deletar" class="toolbar-btn" disabled>
+                        <img src="image/erase.png" alt="Deletar">
+                    </button>
+                    <button id="toolbarDividirParede" title="Dividir Parede" class="toolbar-btn" disabled>
+                        <img src="image/divide.png" alt="Dividir Parede">
+                    </button>
+                </div>
+                
                 <p id="resultado"></p>
-                <div class="project-actions-bottom">
+                <div class="project-actions-bottom"><div class="project-actions-top">
                     <button type="button" id="saveProjectBtn" class="button-like">Salvar Projeto</button>
                     <button type="button" id="loadProjectBtn" class="button-like">Carregar Projeto</button>
                     <button type="button" id="exportProjectBtn" class="button-like">Exportar Imagem</button>
+                    <button type="button" id="resetProjectBtn" class="button-like">Resetar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="obstacle-editor"class="floating-modal editor-panel">
-        <div class="modal-header">
-            <h3>Editor de Obstáculos</h3>
-            <button id="closeEsquerdaBtn" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-content">
-            <p>Adicionar/Editar para a parede selecionada:</p>
-            <div class="input-group">
-                <label>Largura do Obstáculo (m)</label>
-                <div class="input-spinner-container">
-                    <input type="number" step="0.01" id="larguraObstaculo" value="1.00" class="spinner-input">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>Altura do Obstáculo (m)</label>
-                <div class="input-spinner-container">
-                    <input type="number" step="0.01" id="alturaObstaculo" value="1.20" class="spinner-input">
-                </div>
-            </div>
-            <div class="input-group">
-                <label>Posição na Parede (m)</label>
-                <div class="input-spinner-container">
-                    <input type="number" step="0.01" id="posicaoObstaculo" value="0.50" class="spinner-input">
-                </div>
-                <small>Distância do início da parede.</small>
-            </div>
-            <button id="addObstacleBtn" class="button-like">Adicionar Obstáculo</button>
-            <hr style="margin: 20px 0;">
-            <h4>Obstáculos na Parede:</h4>
-            <ul id="obstacleList"></ul>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
