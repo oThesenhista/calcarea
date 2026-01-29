@@ -1,0 +1,672 @@
+@page {
+    margin: 1.5cm;
+    size: A4 portrait;
+}
+@page page-etiquetas {
+    margin: 0.5cm;
+    size: A4 portrait;
+}
+@page page-etiquetas-media {
+    margin: 0.5cm;
+    size: A4 landscape;
+}
+/* ZERAMENTO CRÍTICO DA PÁGINA TÉRMICA */
+@page page-etiqueta-unica {
+    size: 60mm 30mm;
+    margin: 0; 
+}
+
+@font-face {
+  font-family: Bruson;
+  src: url(fonts/Brunson.ttf);
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: staatliches;
+  src: url(fonts/Staatliches-Regular.ttf);
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+    --font-principal: "Trebuchet MS", Tahoma, sans-serif;
+    --font-display: Bruson, sans-serif;
+    --cor-texto: #333;
+    --cor-borda: #ccc;
+    --cor-borda-tabela: #ddd;
+    --cor-fundo-hover: #f5f5f5;
+    --cor-fundo-claro: #f8f9fa;
+    --cor-fundo-overlay: rgba(0,0,0,0.5);
+    
+    --cor-principal: #007bff;
+    --cor-principal-hover: #0069d9;
+    --cor-sucesso: #28a745;
+    
+    --cor-check: #18DB6A;         
+    --cor-label: #FFB145;         
+    --cor-code-inactive: #5A5F67; 
+    --cor-perigo: #C82333;        
+    --cor-perigo-hover: #c82333;
+
+    --cor-secundaria: #6c757d;
+    --cor-etiqueta-nome: #292929;
+    --cor-etiqueta-preco: #17204d;
+    --cor-etiqueta-parcela: #666666;
+    --cor-etiqueta-fundo-bloco: #d0d0d0;
+    --cor-etiqueta-borda-bloco: #ededed;
+}
+
+/* --- ESTILOS DE ÍCONES --- */
+.icon {
+    display: inline-block;
+    vertical-align: middle;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+.icon-sm { width: 16px; height: 16px; }
+.icon-md { width: 24px; height: 24px; }
+.icon-lg { width: 32px; height: 32px; }
+.icon-xl { width: 48px; height: 48px; }
+
+/* Ajuste nos botões para alinhar ícone e texto */
+button, .upload-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* --- BOTÕES COLORIDOS PERSONALIZADOS --- */
+
+/* 1. Botão Label (Laranja) */
+.btn-acao-etiqueta {
+    background-color: var(--cor-label);
+    border-radius: 4px;
+    padding: 6px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.btn-acao-etiqueta img {
+    filter: brightness(0) invert(1);
+    display: block;
+}
+.btn-acao-etiqueta:hover {
+    transform: scale(1.05);
+    filter: brightness(0.95);
+}
+
+/* 2. Botões de Remover (Tabela) e Cancelar (Modal) - Vermelho */
+.remove-btn, #btn-cancelar-qtde {
+    background-color: var(--cor-perigo);
+    border-radius: 4px;
+    padding: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+.remove-btn img, #btn-cancelar-qtde img {
+    filter: brightness(0) invert(1);
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+.remove-btn:hover, #btn-cancelar-qtde:hover {
+    background-color: var(--cor-perigo-hover);
+}
+
+/* 3. Botão Confirmar (Verde) */
+#btn-confirmar-qtde {
+    background-color: var(--cor-check);
+    border-radius: 4px;
+    padding: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: inline-flex;
+}
+#btn-confirmar-qtde img {
+    filter: brightness(0) invert(1);
+    display: block;
+}
+#btn-confirmar-qtde:hover {
+    filter: brightness(0.9);
+}
+
+/* 4. Botão Remover da Etiqueta (Card) - TOPO DIREITO */
+.etiqueta-remove-btn {
+    background-color: var(--cor-perigo);
+    opacity: 1 !important;
+    border-radius: 5px;
+    border: none;
+    width: 24px; /* Levemente menor para equilibrar */
+    height: 24px;
+    padding: 0;
+    position: absolute; /* Garantindo posição */
+    top: 2px; 
+    right: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+.etiqueta-remove-btn img {
+    filter: brightness(0) invert(1);
+    width: 12px; 
+    height: 12px;
+}
+.etiqueta-remove-btn:hover {
+    background-color: var(--cor-perigo-hover);
+    transform: scale(1.1);
+}
+
+/* 5. Input de Quantidade da Etiqueta (Card) - TOPO ESQUERDO */
+.etiqueta-qtde-input {
+    position: absolute;
+    top: 2px;  
+    left: 2px; 
+    width: 35px; /* Bem compacto horizontalmente */
+    height: 24px; /* Altura igual ao botão de fechar */
+    padding: 0 2px;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.95);
+    z-index: 10;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+/* Esconde setinhas do input number */
+.etiqueta-qtde-input::-webkit-inner-spin-button, 
+.etiqueta-qtde-input::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+/* 6. Botão Code (Toggle) */
+.hidden-checkbox { display: none; }
+.btn-toggle-icon {
+    cursor: pointer;
+    padding: 8px;
+    border: 2px solid var(--cor-code-inactive);
+    border-radius: 4px;
+    background-color: white;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-toggle-icon img {
+    filter: invert(39%) sepia(8%) saturate(543%) hue-rotate(183deg) brightness(92%) contrast(89%);
+}
+.btn-toggle-icon:hover { background-color: var(--cor-fundo-hover); }
+
+.hidden-checkbox:checked + .btn-toggle-icon {
+    background-color: var(--cor-principal);
+    border-color: var(--cor-principal);
+}
+.hidden-checkbox:checked + .btn-toggle-icon img {
+    filter: brightness(0) invert(1);
+}
+
+/* --- FIM DOS ESTILOS DE BOTÕES --- */
+
+/* Estilo Unificado de Inputs */
+input[type="text"],
+input[type="number"]:not(#input-qtde):not(.etiqueta-qtde-input),
+select {
+    padding: 6px 8px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: var(--font-principal);
+    font-size: 1em;
+    background-color: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+input[type="text"]:focus,
+input[type="number"]:not(#input-qtde):not(.etiqueta-qtde-input):focus,
+select:focus {
+    outline: none;
+    border-color: var(--cor-principal);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.apenas-impressao {
+    display: none;
+}
+
+body {
+    font-family: var(--font-principal);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    height: 100vh;
+    font-size: 14px;
+    color: var(--cor-texto);
+    overflow: hidden;
+}
+.container { display: flex; width: 100%; overflow-x: hidden; height: 100%; }
+.coluna-busca, .coluna-orcamento {
+    width: 50%;
+    padding: 2em;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+}
+.coluna-busca { border-right: 1px solid var(--cor-borda); }
+
+/* Seção de Carregamento de Arquivo */
+.area-carregamento { margin-bottom: 0; flex-shrink: 0; display: flex; }
+.upload-button { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 15px; cursor: pointer; background-color: var(--cor-fundo-claro); border: 1px solid var(--cor-borda); border-radius: 5px; transition: background-color 0.2s ease; width: auto; white-space: nowrap; font-size: 0.9em; min-height: 38px; }
+.upload-button:hover { background-color: #e9ecef; }
+#seletorArquivo { display: none; }
+#info-dados { display: none; }
+
+/* Classes de status */
+.upload-button.status-green { background-color: var(--cor-sucesso); color: white; border-color: var(--cor-sucesso-hover); }
+.upload-button.status-yellow { background-color: var(--cor-info); color: var(--cor-texto); border-color: var(--cor-info-hover); }
+.upload-button.status-red { background-color: var(--cor-perigo); color: white; border-color: var(--cor-perigo-hover); }
+
+/* Wrappers de Busca (Esquerda) */
+#busca-wrapper, .cliente-wrapper-busca { background-color: white; z-index: 10; padding-bottom: 1em; }
+
+/* Dados do Cliente */
+#dados-cliente { margin-bottom: 1em; display: flex; flex-direction: row; gap: 10px; flex-shrink: 0; }
+.campo-cliente { display: flex; align-items: center; gap: 8px; }
+.campo-cliente label { font-weight: bold; font-size: 0.9em; white-space: nowrap; }
+.valor-print { display: none; }
+#campo-salvar { /* Container lógico */ }
+
+/* Orçamento */
+#orcamento-cabecalho { display: flex; flex-direction: row; gap: 10px; border-bottom: 2px solid var(--cor-texto); padding-bottom: 5px; margin-bottom: 5px; flex-shrink: 0; }
+#orcamento-itens { flex-grow: 1; overflow-y: auto; margin-bottom: 10px; min-height: 50px; }
+.campo-vendedor { display: flex; flex-direction: column; }
+#select-vendedor { width: auto; }
+#orcamento-total { font-size: 1.5em; font-weight: bold; }
+
+/* Tabelas e Modal */
+table { width: 100%; border-collapse: collapse; margin-top: 3px; }
+th, td { border: 1px solid var(--cor-borda-tabela); padding: 8px; text-align: left; }
+tbody tr:hover { background-color: var(--cor-fundo-hover); }
+.orcamento-tabela th, .orcamento-tabela td { border-bottom: 1px solid #eee; padding: 4px 5px; text-align: left; vertical-align: middle; }
+
+/* CLASSE GERAL DE BOTÕES DE AÇÃO */
+.btn-acao { cursor: pointer; border: none; font-size: 18px; padding: 5px; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--cor-fundo-overlay); display: none; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: white; padding: 20px; border-radius: 8px; text-align: center; width: 250px; }
+.modal-actions { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#modal-produto-nome { display: none; }
+#input-qtde { padding: 10px; font-size: 30px; font-weight: 900; width: 80px; text-align: center; border: 1px solid var(--cor-borda); border-radius: 5px; box-sizing: border-box; }
+#input-qtde:focus { outline: none; border-color: var(--cor-principal); box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
+.modal-actions button { width: 60px; height: 60px; border-radius: 8px; }
+.modal-actions button img { width: 32px; height: 32px; }
+
+/* Layout dos dados do cliente */
+#labels-cliente { display: grid; align-content: space-around; font-weight: bold; }
+#inputs-cliente { width: 100%; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; flex-wrap: nowrap; gap: 2px; }
+
+/* Alinhamento de colunas nas tabelas */
+.col-qtde, .col-preco, .col-acoes { text-align: center !important; }
+.col-produto { padding: 0 !important; }
+td { border: none !important; }
+.orcamento-tabela td { border-bottom: 1px solid #eee !important; }
+#resultados td { border: 1px solid #eee !important; }
+#resultados .col-acoes { width: 50px; text-align: center !important; }
+
+/* Logo e Dados da Loja */
+#logo img { width: 200px; }
+#dados-loja { width: 100%; text-align: right; font-size: 16px; font-weight: 800; }
+
+/* Hover em linhas clicáveis */
+#resultados tr, #lista-clientes-wrapper tr { cursor: pointer; }
+#resultados tr:hover, #lista-clientes-wrapper tr:hover { background-color: var(--cor-fundo-hover); }
+
+/* --- ABAS (Esquerda e Direita Unificadas) --- */
+.tab-buttons, .tab-buttons-direita { display: flex; justify-content: space-around; border-bottom: 1px solid var(--cor-borda); margin: -2em -2em 0 -2em; padding: 0 2em; position: sticky; top: -2em; background-color: white; z-index: 20; flex-shrink: 0; }
+.tab-button, .tab-button-direita { flex-grow: 1; border: none; background: none; padding: 10px; cursor: pointer; font-size: 1.2em; color: #555; transition: background-color 0.2s; }
+.tab-button:hover, .tab-button-direita:hover { background-color: #f0f0f0; }
+.tab-button.active-tab, .tab-button-direita.active-tab-direita { font-weight: bold; color: #000; border-bottom: 2px solid var(--cor-sucesso); }
+
+/* Conteúdo das Abas */
+.tab-content, .tab-content-direita { display: none; flex-direction: column; flex-grow: 1; padding-top: 2em; min-height: 0; }
+.tab-content.active-content, .tab-content-direita.active-content-direita { display: flex; }
+
+/* Rolagem das Listas */
+#resultados, #lista-clientes-wrapper { overflow-y: auto; flex-grow: 1; }
+#area-clientes { display: flex; flex-direction: column; flex-grow: 1; }
+
+/* Wrapper para Input + Botão (Esquerda) */
+.input-com-botao-wrapper { display: flex; gap: 10px; align-items: stretch; flex-shrink: 0; }
+#busca-wrapper .input-com-botao-wrapper { margin-bottom: 10px; }
+.cliente-wrapper-busca .input-com-botao-wrapper { margin-bottom: 10px; }
+
+/* Botões da Aba Clientes */
+.botoes-clientes { margin-bottom: 0; flex-shrink: 0; display: flex; gap: 5px; }
+#btn-novo-cliente, #btn-exportar-clientes { flex-grow: 1; padding: 8px 10px; background-color: var(--cor-sucesso); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; text-align: center; white-space: nowrap; }
+#btn-exportar-clientes { background-color: var(--cor-secundaria); }
+#caixaBuscaClientes { margin-bottom: 0; }
+
+/* Lista de Clientes */
+#lista-clientes-wrapper { list-style: none; padding: 0; margin: 0; }
+#lista-clientes-wrapper tr.selected { background-color: var(--cor-principal); color: white; }
+
+/* --- GERADOR DE ETIQUETAS --- */
+#etiquetas-controles { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 1em; padding-bottom: 1em; border-bottom: 1px solid var(--cor-borda); position: sticky; top: 3.5em; background-color: white; z-index: 19; flex-wrap: wrap; flex-shrink: 0; }
+#etiquetas-controles .campo-layout { flex-grow: 1; }
+#etiquetas-controles label { font-weight: bold; margin-right: 5px; }
+#etiquetas-controles select { width: auto; }
+
+/* Container de Etiquetas */
+#etiquetas-container { overflow-y: auto; display: grid; gap: 10px; padding: 5px; background-color: var(--cor-fundo-claro); border-radius: 5px; align-content: start; flex-grow: 1; }
+#etiquetas-container p.placeholder { display: block; width: 100%; text-align: center; padding: 2em; }
+
+/* Layouts na TELA (Preview) */
+#etiquetas-container.layout-a4-18 { grid-template-columns: repeat(3, 1fr); }
+#etiquetas-container.layout-a4-4 { grid-template-columns: repeat(2, 1fr); }
+#etiquetas-container.layout-a4-2 { grid-template-columns: repeat(2, 1fr); }
+#etiquetas-container.layout-a4-1 { grid-template-columns: 1fr; }
+
+/* Visual da Etiqueta Individual */
+.etiqueta { position: relative; background-color: white; border: 1px solid var(--cor-borda); border-radius: 4px; padding: 10px 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); gap: 8px; overflow: hidden; margin-top: 5px; }
+
+/* Agrupamento de Fontes e Estilos Comuns de Etiqueta */
+.etiqueta-simples .etiqueta-preco,
+.etiqueta-pequena .etiqueta-nome, .etiqueta-pequena .etiqueta-preco, .etiqueta-pequena .etiqueta-parcelamento,
+.etiqueta-media .etiqueta-nome, .etiqueta-media .etiqueta-preco, .etiqueta-media .etiqueta-parcelamento,
+.etiqueta-grande .etiqueta-nome, .etiqueta-grande .etiqueta-preco, .etiqueta-grande .etiqueta-parcelamento { font-family: var(--font-display); }
+.etiqueta-pequena .etiqueta-logo, .etiqueta-media .etiqueta-logo, .etiqueta-grande .etiqueta-logo { width: 70%; }
+.etiqueta-pequena .etiqueta-logo img, .etiqueta-media .etiqueta-logo img, .etiqueta-grande .etiqueta-logo img { max-width: 100%; height: auto; }
+.etiqueta-pequena .etiqueta-info-bloco, .etiqueta-media .etiqueta-info-bloco, .etiqueta-grande .etiqueta-info-bloco { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.etiqueta-pequena .etiqueta-nome, .etiqueta-media .etiqueta-nome, .etiqueta-grande .etiqueta-nome { color: var(--cor-etiqueta-nome); }
+.etiqueta-pequena .etiqueta-preco, .etiqueta-media .etiqueta-preco, .etiqueta-grande .etiqueta-preco { color: var(--cor-etiqueta-preco); line-height: 1; display: flex; align-items: flex-start; justify-content: center; }
+.etiqueta-pequena .currency-symbol, .etiqueta-media .currency-symbol, .etiqueta-grande .currency-symbol { font-size: 0.6em; color: var(--cor-etiqueta-parcela); margin-right: 0.1em; margin-top: 0.13em; }
+.etiqueta-pequena .etiqueta-barcode, .etiqueta-media .etiqueta-barcode, .etiqueta-grande .etiqueta-barcode { box-sizing: border-box; }
+.etiqueta-pequena .etiqueta-parcelamento, .etiqueta-media .etiqueta-parcelamento, .etiqueta-grande .etiqueta-parcelamento { color: var(--cor-etiqueta-parcela); }
+
+/* Estilos Específicos de Etiqueta (Tamanhos) */
+.etiqueta-simples .etiqueta-nome { font-weight: bold; font-size: 0.8em; line-height: 1.2; }
+.etiqueta-simples .etiqueta-preco { font-size: 1.8em; color: #080808; line-height: 1; }
+.etiqueta-simples .etiqueta-barcode { box-sizing: border-box; }
+.etiqueta-pequena .etiqueta-nome { font-size: 2.2em; padding: 0 15px; }
+.etiqueta-pequena .etiqueta-preco { font-size: 7.3em; }
+.etiqueta-pequena .etiqueta-barcode { height: 100%; width: 100%; font-size: 28px; }
+.etiqueta-pequena .etiqueta-parcelamento { font-size: 1.3em; margin-top: 5px; }
+.etiqueta-media .etiqueta-nome { font-size: 2.8em; padding: 0 30px; }
+.etiqueta-media .etiqueta-preco { font-size: 8.5em; }
+.etiqueta-media .etiqueta-parcelamento { font-size: 1.8em; margin-top: 5px; }
+.etiqueta-grande .etiqueta-nome { font-size: 4.5em; padding: 0 45px; margin-top: 25px; }
+.etiqueta-grande .etiqueta-preco { font-size: 15.2em; }
+.etiqueta-grande .etiqueta-parcelamento { font-size: 2.5em; margin-top: 10px; }
+.etiqueta-codigo-fallback { font-size: 0.9em; color: var(--cor-perigo); font-weight: bold; word-break: break-word; }
+
+/* Rodapé Padronizado (Orçamento e Etiquetas) */
+.rodape-padrao { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--cor-borda); padding: 10px 0; margin-top: auto; position: sticky; bottom: 0; background-color: white; z-index: 10; width: 100%; flex-shrink: 0; }
+.rodape-padrao .campo-vendedor, .rodape-padrao .campo-vendedor-placeholder { flex: 1; min-width: 150px; }
+.rodape-padrao .rodape-botoes-wrapper { flex: 2; display: flex; justify-content: center; gap: 10px; align-items: center; } /* ALIGN ITEMS CENTER ADICIONADO */
+.rodape-padrao #orcamento-total, .rodape-padrao .placeholder-total { flex: 1; min-width: 150px; text-align: right; }
+.rodape-padrao .campo-vendedor-placeholder, .rodape-padrao .placeholder-total { visibility: hidden; }
+
+/* Garante que o div do checkbox apareça como bloco inline */
+#div-check-simples {
+    display: inline-block;
+}
+
+/* Botões de Rodapé */
+.rodape-botoes-wrapper button { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; color: white; white-space: nowrap; }
+.rodape-botoes-wrapper #btn-salvar-clientes { background-color: var(--cor-secundaria); }
+.rodape-botoes-wrapper #btn-imprimir-orcamento, .rodape-botoes-wrapper #btn-imprimir-etiquetas { background-color: var(--cor-principal); }
+.rodape-botoes-wrapper #btn-limpar-orcamento, .rodape-botoes-wrapper #btn-limpar-etiquetas { background-color: var(--cor-perigo); }
+
+/* --- ADIÇÕES PARA SCANNER E MOBILE --- */
+#reader { width: 100%; display: none; margin-top: 10px; border-radius: 8px; overflow: hidden; }
+.mobile-only-btn { display: none; background: var(--cor-principal); color: white; border: none; border-radius: 4px; padding: 0 15px; cursor: pointer; font-size: 1.2em; }
+
+@media (max-width: 768px) {
+    .container { flex-direction: column !important; height: auto !important; overflow-y: auto !important; padding-bottom: 60px; /* Espaço para o footer fixo */ }
+    .coluna-orcamento { order: -1 !important; width: 100% !important; height: auto !important; border-left: none !important; border-bottom: 2px solid var(--cor-borda) !important; padding: 10px !important; }
+    .coluna-busca { width: 100% !important; height: auto !important; padding: 10px !important; border-right: none !important; }
+    .hide-mobile, .tab-button-direita[data-tab-direita="etiquetas"] { display: none !important; }
+    .mobile-only-btn { display: block !important; }
+    .tab-buttons, .tab-buttons-direita { margin: 0 -10px !important; padding: 0 10px !important; top: 0 !important; }
+    #logo img { width: 120px; }
+    #dados-loja { font-size: 12px; }
+    
+    /* Ocultar texto dos botões no mobile */
+    .btn-text { display: none; }
+    .rodape-botoes-wrapper button { padding: 10px; }
+
+    /* NOVAS REGRAS: Ocultar elementos específicos no mobile */
+    #orcamento-cabecalho, 
+    .campo-vendedor, 
+    #btn-salvar-clientes,
+    .tab-button[data-tab="clientes"] {
+        display: none !important;
+    }
+
+    /* 1. Resetar justify-content dos botões do rodapé */
+    .rodape-padrao .rodape-botoes-wrapper { 
+        justify-content: unset !important; 
+        flex-wrap: wrap; /* Permitir quebra se necessário */
+    }
+
+    /* 2. Ocultar Valor Unitário (3ª coluna) no Orçamento */
+    #orcamento-itens table th:nth-child(3),
+    #orcamento-itens table td:nth-child(3) {
+        display: none !important;
+    }
+
+    /* 3. Ocultar Coluna Ações (botão etiqueta) na Busca de Produtos */
+    #resultados th.col-acoes,
+    #resultados td.col-acoes {
+        display: none !important;
+    }
+
+    /* 4. Ocultar Cabeçalhos das Tabelas (Orçamento e Produtos) */
+    #orcamento-itens thead,
+    #resultados thead {
+        display: none !important;
+    }
+
+    /* 5. Ocultar Títulos (Busca e Resultados) */
+    #busca-wrapper h1,
+    #tab-produtos h2 {
+        display: none !important;
+    }
+
+    /* 6. Fixar Input de Pesquisa no Rodapé */
+    #busca-wrapper .input-com-botao-wrapper {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        padding: 10px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        margin: 0;
+        display: flex;
+        gap: 5px;
+        box-sizing: border-box;
+    }
+    
+    /* Adicionar padding ao final da lista de resultados para não ficar atrás do input fixo */
+    #resultados {
+        padding-bottom: 70px; 
+    }
+}
+
+/* --- Regras de Impressão --- */
+@media print {
+    /* 1. RESET GLOBAL DE MARGENS (Evita página extra) */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    body { display: block; font-size: 10pt; color: black; overflow: visible !important; height: auto !important; }
+    .container { height: auto !important; display: block !important; }
+    
+    .coluna-busca, .coluna-orcamento { width: 100% !important; height: auto !important; display: block !important; padding: 0 !important; border: none !important; overflow: visible !important;}
+    body > .container > *, .modal-overlay, .etiqueta-remove-btn, .etiqueta-qtde-input { display: none !important; } /* Ocultar Input de Qtde na Impressão */
+
+    /* Forçar a exibição de elementos ocultos no mobile para impressão */
+    body.imprimindo-orcamento #orcamento-cabecalho { display: flex !important; }
+    body.imprimindo-orcamento .campo-vendedor { display: block !important; }
+    
+    /* Garantir que a tabela apareça completa na impressão */
+    body.imprimindo-orcamento #orcamento-itens table th:nth-child(3),
+    body.imprimindo-orcamento #orcamento-itens table td:nth-child(3),
+    body.imprimindo-orcamento #orcamento-itens thead {
+        display: table-cell !important;
+    }
+    body.imprimindo-orcamento #orcamento-itens thead {
+        display: table-header-group !important;
+    }
+
+    /* Orçamento */
+    body.imprimindo-orcamento { page: page-etiquetas; }
+    body.imprimindo-orcamento .coluna-orcamento, body.imprimindo-orcamento #tab-orcamento-view { display: block !important; flex-direction: unset; overflow: visible !important; }
+    body.imprimindo-orcamento #orcamento-itens { overflow: visible !important; height: auto !important; flex-grow: 0 !important; display: block !important; }
+    body.imprimindo-orcamento .rodape-botoes-wrapper, body.imprimindo-orcamento .tab-buttons-direita, body.imprimindo-orcamento #tab-etiquetas-view, body.imprimindo-orcamento .btn-acao, body.imprimindo-orcamento .col-acoes { display: none !important; }
+    body.imprimindo-orcamento .esconder-na-impressao { display: none !important; }
+    body.imprimindo-orcamento #dados-cliente { display: flex; flex-direction: row; gap: 10px; margin-bottom: 0.2em; border-bottom: 1px solid var(--cor-borda); padding-bottom: 0.8em; }
+    body.imprimindo-orcamento .campo-cliente input { border: none; padding: 0; font-size: 1em; color: black; background: white; }
+    body.imprimindo-orcamento #data-orcamento { display: inline !important; }
+    body.imprimindo-orcamento .rodape-padrao { align-items: center; page-break-before: auto; position: relative !important; bottom: auto !important; z-index: auto !important; margin-top: 10px !important; width: 100% !important; padding: 10px 0 !important; display: flex !important; background-color: transparent !important; } 
+    body.imprimindo-orcamento .apenas-impressao { display: block !important; }
+    body.imprimindo-orcamento .campo-vendedor #select-vendedor { display: none; }
+    body.imprimindo-orcamento .campo-vendedor .valor-print { display: inline !important; }
+
+    /* Etiquetas (Geral) */
+    body.imprimindo-etiquetas { page: page-etiquetas; }
+    body.imprimindo-etiquetas.layout-a4-2-active { page: page-etiquetas-media; }
+    body.imprimindo-etiquetas .coluna-orcamento, body.imprimindo-etiquetas #tab-etiquetas-view { display: block !important; width: 100% !important; padding: 0 !important; border: none !important; overflow: visible !important; height: auto !important;}
+    body.imprimindo-etiquetas #etiquetas-rodape, body.imprimindo-etiquetas #tab-orcamento-view, body.imprimindo-etiquetas .tab-buttons-direita, body.imprimindo-etiquetas #etiquetas-controles { display: none !important; }
+    body.imprimindo-etiquetas #etiquetas-container { display: grid !important; width: 100%; height: auto !important; margin: 0; padding: 0; overflow: visible !important; background: none; box-shadow: none; border: none; align-content: start; gap: 5mm; }
+    body.imprimindo-etiquetas .etiqueta { border: 1px dashed #999; page-break-inside: avoid !important; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; box-sizing: border-box; padding: 2mm 5mm; box-shadow: none; gap: 1mm; }
+
+    /* Etiquetas (P, M, G - Bloco Inclinado) */
+    body.imprimindo-etiquetas .etiqueta-pequena .etiqueta-info-bloco, body.imprimindo-etiquetas .etiqueta-media .etiqueta-info-bloco, body.imprimindo-etiquetas .etiqueta-grande .etiqueta-info-bloco { padding: 20px 0; margin-top: 10px; background-color: var(--cor-etiqueta-fundo-bloco) !important; border: 10px solid var(--cor-etiqueta-borda-bloco); transform: skewY(-5deg); width: 120%; box-sizing: border-box; -webkit-print-color-adjust: exact; color-adjust: exact; }
+    body.imprimindo-etiquetas .etiqueta-pequena .etiqueta-logo, body.imprimindo-etiquetas .etiqueta-media .etiqueta-logo, body.imprimindo-etiquetas .etiqueta-grande .etiqueta-logo { margin-top: 5mm; width: 60%; }
+    body.imprimindo-etiquetas .etiqueta-pequena .etiqueta-info-bloco { margin-top: 5mm; margin-left: -5mm; margin-right: -5mm; }
+    body.imprimindo-etiquetas .etiqueta-media .etiqueta-info-bloco { margin-top: 10mm; margin-left: -5mm; margin-right: -5mm; }
+    body.imprimindo-etiquetas .etiqueta-grande .etiqueta-info-bloco { margin-top: 25mm; margin-left: -5mm; margin-right: -5mm; }
+    body.imprimindo-etiquetas .etiqueta-pequena .etiqueta-parcelamento, body.imprimindo-etiquetas .etiqueta-media .etiqueta-parcelamento, body.imprimindo-etiquetas .etiqueta-grande .etiqueta-parcelamento { color: var(--cor-etiqueta-parcela); }
+    body.imprimindo-etiquetas .etiqueta-pequena .etiqueta-parcelamento { font-size: 1.6em; margin-top: 2.2mm; }
+    body.imprimindo-etiquetas .etiqueta-media .etiqueta-parcelamento { font-size: 1.9em; margin-top: 3mm; }
+    body.imprimindo-etiquetas .etiqueta-grande .etiqueta-parcelamento { font-size: 2.5em; margin-top: 5mm; }
+
+    /* Etiquetas (Barcode) */
+    body.imprimindo-etiquetas .etiqueta-barcode { max-width: 100%; box-sizing: border-box; margin-bottom: 5mm; }
+    body.imprimindo-etiquetas .etiqueta-simples .etiqueta-barcode { margin-top: 1.5mm; width: 100%; height: 24mm; }
+    body.imprimindo-etiquetas .etiqueta-pequena .etiqueta-barcode { margin-top: 8mm; width: 100% !important; height: 26mm !important; }
+    body.imprimindo-etiquetas .etiqueta-media .etiqueta-barcode { margin-top: 12mm; width: 75%; height: 18mm; }
+    body.imprimindo-etiquetas .etiqueta-grande .etiqueta-barcode { margin-top: 25mm; width: 70%; height: 21mm; }
+
+    /* Etiquetas (Grid Impressão) */
+    body.imprimindo-etiquetas #etiquetas-container.layout-a4-1 { grid-template-columns: 1fr; }
+    body.imprimindo-etiquetas #etiquetas-container.layout-a4-4 { grid-template-columns: repeat(2, 1fr); }
+    body.imprimindo-etiquetas #etiquetas-container.layout-a4-18 { grid-template-columns: repeat(3, 1fr); }
+    body.imprimindo-etiquetas.layout-a4-2-active #etiquetas-container.layout-a4-2 { grid-template-columns: repeat(2, 1fr); }
+    body.imprimindo-etiquetas .etiqueta-simples { height: 30mm; }
+    body.imprimindo-etiquetas .etiqueta-pequena { height: 130mm; }
+    body.imprimindo-etiquetas .etiqueta-grande { height: 275mm; }
+    body.imprimindo-etiquetas.layout-a4-2-active .etiqueta-media { height: 190mm; }
+    body.imprimindo-etiquetas #etiquetas-container.layout-a4-1 { grid-template-rows: auto; }
+    body.imprimindo-etiquetas #etiquetas-container.layout-a4-4 { grid-template-rows: repeat(2, auto); }
+    body.imprimindo-etiquetas #etiquetas-container.layout-a4-18 { grid-template-rows: repeat(7, auto); }
+    body.imprimindo-etiquetas.layout-a4-2-active #etiquetas-container.layout-a4-2 { grid-template-rows: auto; }
+
+    /* --- CORREÇÃO FINAL ETIQUETA ÚNICA (6x3cm) --- */
+    body.imprimindo-etiqueta-unica { page: page-etiqueta-unica; background: none; }
+    
+    body.imprimindo-etiqueta-unica .coluna-orcamento, 
+    body.imprimindo-etiqueta-unica #tab-etiquetas-view { 
+        display: block !important; width: 100% !important; height: auto !important; padding: 0 !important; margin: 0 !important; border: none !important; overflow: visible !important; 
+    }
+    
+    body.imprimindo-etiqueta-unica #etiquetas-rodape, 
+    body.imprimindo-etiqueta-unica #tab-orcamento-view, 
+    body.imprimindo-etiqueta-unica .tab-buttons-direita, 
+    body.imprimindo-etiqueta-unica #etiquetas-controles { 
+        display: none !important; 
+    }
+    
+    /* Container em FLUXO NORMAL (Block) para evitar problemas de paginação */
+    body.imprimindo-etiqueta-unica #etiquetas-container { 
+        display: block !important; 
+        width: 100%; 
+        padding: 0; 
+        margin: 0; 
+        background: none; 
+        border: none; 
+    }
+    
+    /* TRUQUE DA PRIMEIRA ETIQUETA: Margem negativa ajustada para -1mm */
+    body.imprimindo-etiqueta-unica .etiqueta:first-child {
+        margin-top: -1mm !important; 
+    }
+    
+    body.imprimindo-etiqueta-unica .etiqueta { 
+        display: flex !important; 
+        width: 60mm; 
+        /* Altura de segurança: 29mm para não estourar a página de 30mm */
+        height: 29mm; 
+        max-height: 29mm;
+        padding: 1mm 2mm; 
+        border: none; 
+        box-sizing: border-box; 
+        justify-content: center; 
+        align-items: center; 
+        gap: 0.5mm; 
+        /* Quebra página DEPOIS de cada etiqueta */
+        page-break-after: always; 
+        overflow: hidden; 
+        page-break-inside: avoid;
+    }
+    
+    /* Remove a quebra da última etiqueta para não gerar folha vazia no final */
+    body.imprimindo-etiqueta-unica .etiqueta:last-child { 
+        page-break-after: auto; 
+    }
+    
+    body.imprimindo-etiqueta-unica .etiqueta-simples { flex-direction: column; }
+    
+    body.imprimindo-etiqueta-unica .etiqueta-simples .etiqueta-nome { 
+        font-size: 1em; 
+        font-weight: bold; 
+        line-height: 1.1; 
+        max-height: 2.2em; 
+        overflow: hidden;
+    }
+    
+    body.imprimindo-etiqueta-unica .etiqueta-simples .etiqueta-preco { 
+        font-family: var(--font-display); 
+        font-size: 2em; 
+        line-height: 1; 
+        color: #080808; 
+    }
+    
+    body.imprimindo-etiqueta-unica .etiqueta-simples .etiqueta-barcode { 
+        width: 90%; 
+        height: 8mm; 
+        margin-top: 0.5mm; 
+    }
+}

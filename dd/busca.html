@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca e Orçamento de Produtos</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="coluna-busca">
+            <div class="tab-buttons">
+                <button class="tab-button active-tab" data-tab="produtos">Produtos</button>
+                <button class="tab-button" data-tab="clientes">Clientes</button>
+            </div>
+            
+            <div id="tab-produtos" class="tab-content active-content">
+                <div id="busca-wrapper">
+                    <h1>Busca de Produtos</h1>
+                    
+                    <div class="input-com-botao-wrapper">
+                        <input type="text" id="caixaBusca" placeholder="Buscar por nome ou código...">
+                        <button id="btn-scan" class="mobile-only-btn" title="Escanear Código">
+                            <img src="img/scan_icon.svg" class="icon-md" alt="Scan">
+                        </button>
+                        
+                        <div class="area-carregamento">
+                            <label for="seletorArquivo" class="upload-button status-red" title="Atualizar Lista">
+                                <img src="img/upload_icon.svg" class="icon-md" alt="Upload">
+                            </label>
+                            <input type="file" id="seletorArquivo" accept=".html">
+                            <span id="info-dados" class="status-info"></span>
+                        </div>
+                    </div>
+                    <div id="reader" style="width: 100%; display: none; margin-top: 10px;"></div>
+                </div>
+                
+                <h2>Resultados da Busca</h2>
+                <div id="resultados"><p class="placeholder">Aguardando dados...</p></div>
+            </div>
+
+            <div id="tab-clientes" class="tab-content">
+                <div class="cliente-wrapper-busca">
+                    <h1>Gerenciar Clientes</h1>
+
+                    <div class="input-com-botao-wrapper">
+                        <input type="text" id="caixaBuscaClientes" placeholder="Buscar cliente por nome ou CPF...">
+                        <div class="botoes-clientes">
+                            <button id="btn-novo-cliente" title="Novo Cliente">
+                                <img src="img/plus_icon.svg" class="icon-sm" alt="Novo">
+                                <span class="btn-text">Novo</span>
+                            </button>
+                            <button id="btn-exportar-clientes" title="Exportar Clientes">
+                                <img src="img/save_icon.svg" class="icon-sm" alt="Salvar">
+                                <span class="btn-text">Exportar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <h2>Lista de Clientes</h2>
+                <div id="lista-clientes-wrapper"><p class="placeholder">Nenhum cliente encontrado.</p></div>
+            </div>
+        </div>
+
+        <div class="coluna-orcamento">
+            <div class="tab-buttons tab-buttons-direita">
+                <button class="tab-button-direita active-tab-direita" data-tab-direita="orcamento">Orçamento</button>
+                <button class="tab-button-direita" data-tab-direita="etiquetas">Gerador de Etiquetas</button>
+            </div>
+            
+            <div id="tab-orcamento-view" class="tab-content-direita active-content-direita">
+                <div id="orcamento-cabecalho">
+                    <div id="logo">
+                        <img src="img/logo.png">
+                    </div>
+                    <div id="dados-loja">
+                        FONE: (11) 2233-3734 / (11) 2231-4616 <br> WHATSAPP: (11) 9 3924-6851 <br> 				
+                        AV. MARIANA CALIGIORI RONCHETTI, 1215 <br> JD. PERI - SÃO PAULO SP CEP: 02650-000 <br>
+                        E-MAIL: ded_moura@hotmail.com
+                    </div>
+                </div>
+                
+                <div id="dados-cliente">
+                    <div id="labels-cliente">
+                        <label for="cliente-nome">Cliente:</label>
+                        <label for="cliente-endereco">Endereço:</label>
+                        <label for="cliente-telefone">Telefone:</label>
+                        <label for="cliente-cpf" class="hide-mobile">CPF/CNPJ:</label>
+                        <label for="cliente-responsavel" class="hide-mobile">Responsável:</label>
+                    </div>
+                    <div id="inputs-cliente">
+                        <div class="campo-cliente"><input type="text" id="cliente-nome" class="valor-input" list="lista-clientes"><span class="valor-print"></span></div>
+                        <div class="campo-cliente"><input type="text" id="cliente-endereco" class="valor-input"><span class="valor-print"></span></div>
+                        <div class="campo-cliente"><input type="text" id="cliente-telefone" class="valor-input"><span class="valor-print"></span></div>
+                        <div class="campo-cliente hide-mobile"><input type="text" id="cliente-cpf" class="valor-input"><span class="valor-print"></span></div>
+                        <div class="campo-cliente hide-mobile"><input type="text" id="cliente-responsavel" class="valor-input"><span class="valor-print"></span></div>
+                        
+                        <div id="campo-salvar">
+                            <datalist id="lista-clientes"></datalist>
+                        </div>
+                    </div>
+                </div>
+                <span id="data-orcamento" class="valor-print">23/09/2025 - 13:13</span>
+
+                <div id="orcamento-itens"><p class="placeholder">Nenhum item adicionado.</p></div>
+                
+                <div id="orcamento-rodape" class="rodape-padrao">
+                    <div class="campo-vendedor">
+                        <label for="select-vendedor" class="apenas-impressao">Vendedor:</label>
+                        <select id="select-vendedor" title="Vendedor">
+                            <option>Duarte Moura</option>
+                            <option>Fernando Flores</option>
+                            <option>Diogo Flores</option>
+                            <option>Joyce Matos</option>
+                        </select>
+                        <span class="valor-print" id="vendedor-print">Duarte Moura</span>
+                    </div>
+
+                    <div class="rodape-botoes-wrapper">
+                        <button id="btn-salvar-clientes" title="Salvar Clientes">
+                            <img src="img/save_icon.svg" class="icon-md" alt="Salvar">
+                            <span class="btn-text">Salvar</span>
+                        </button>
+                        <button id="btn-imprimir-orcamento" title="Imprimir Orçamento">
+                            <img src="img/print_icon.svg" class="icon-md" alt="Imprimir">
+                            <span class="btn-text">Imprimir</span>
+                        </button>
+                        <button id="btn-limpar-orcamento" title="Limpar Orçamento">
+                            <img src="img/erase_icon.svg" class="icon-md" alt="Limpar">
+                            <span class="btn-text">Limpar</span>
+                        </button>
+                    </div>
+                    
+                    <div id="orcamento-total">Total: R$ 0,00</div>
+                </div>
+            </div>
+            
+            <div id="tab-etiquetas-view" class="tab-content-direita">
+                <div id="etiquetas-controles">
+                    <div class="campo-layout">
+                        <label for="select-layout-etiqueta">Layout de Impressão:</label>
+                        <select id="select-layout-etiqueta">
+                            <option value="a4-18">Simples (21 por pág.)</option> 
+                            <option value="a4-4">Pequena (4 por pág.)</option>
+                            <option value="a4-2">Média (2 por pág.)</option>
+                            <option value="a4-1">Grande (1 por pág.)</option>
+                        </select>
+                    </div>
+                    
+                    </div>
+                
+                <div id="etiquetas-container" class="layout-a4-18">
+                    <p class="placeholder">Nenhuma etiqueta adicionada.</p>
+                </div>
+
+                <div id="etiquetas-rodape" class="rodape-padrao">
+                    <div class="campo-vendedor-placeholder"></div>
+
+                    <div class="rodape-botoes-wrapper">
+                        <div class="campo-check-etiqueta" id="div-check-simples" style="margin-right: 10px;">
+                            <input type="checkbox" id="check-etiqueta-unica" class="hidden-checkbox">
+                            <label for="check-etiqueta-unica" class="btn-toggle-icon" title="Alternar Modo Etiqueta Única">
+                                <img src="img/code_icon.svg" class="icon-md" alt="Code">
+                            </label>
+                        </div>
+
+                        <button id="btn-imprimir-etiquetas" title="Imprimir Etiquetas">
+                            <img src="img/print_code_icon.svg" class="icon-md" alt="Print Code">
+                            <span class="btn-text">Imprimir</span>
+                        </button>
+                        <button id="btn-limpar-etiquetas" title="Limpar Etiquetas">
+                            <img src="img/erase_icon.svg" class="icon-md" alt="Limpar">
+                            <span class="btn-text">Limpar</span>
+                        </button>
+                    </div>
+                    
+                    <div id="orcamento-total" class="placeholder-total"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="modal-qtde">
+        <div class="modal-content">
+            <h3 id="modal-produto-nome"></h3>
+            <div class="modal-actions">
+                <button id="btn-cancelar-qtde">
+                    <img src="img/deny_icon.svg" class="icon-xl" alt="Cancelar">
+                </button>
+                <input type="number" id="input-qtde" value="1" min="0.01" step="any">
+                <button id="btn-confirmar-qtde">
+                    <img src="img/check_icon.svg" class="icon-xl" alt="Confirmar">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="clientes-db.js" defer=""></script>
+    <script src="script.js" defer=""></script>
+</body>
+</html>
