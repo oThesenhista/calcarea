@@ -34,8 +34,7 @@
                             <span id="info-dados" class="status-info"></span>
                         </div>
                     </div>
-                    <div id="reader" style="width: 100%; display: none; margin-top: 10px;"></div>
-                </div>
+                    </div>
                 
                 <h2>Resultados da Busca</h2>
                 <div id="resultados"><p class="placeholder">Aguardando dados...</p></div>
@@ -146,10 +145,18 @@
                             <option value="a4-4">Pequena (4 por pág.)</option>
                             <option value="a4-2">Média (2 por pág.)</option>
                             <option value="a4-1">Grande (1 por pág.)</option>
+                            <option value="thermal-60x30">Térmica 60x30mm</option>
+                            <option value="thermal-25x10">Térmica 25x10mm (Joia)</option>
+                            <option value="thermal-custom">Térmica Custom</option>
                         </select>
                     </div>
                     
+                    <div id="custom-dimensions" style="display: none; gap: 5px; align-items: center;">
+                        <input type="number" id="custom-width" placeholder="L(mm)" style="width: 60px;">
+                        <span>x</span>
+                        <input type="number" id="custom-height" placeholder="A(mm)" style="width: 60px;">
                     </div>
+                </div>
                 
                 <div id="etiquetas-container" class="layout-a4-18">
                     <p class="placeholder">Nenhuma etiqueta adicionada.</p>
@@ -192,6 +199,19 @@
                 <input type="number" id="input-qtde" value="1" min="0.01" step="any">
                 <button id="btn-confirmar-qtde">
                     <img src="img/check_icon.svg" class="icon-xl" alt="Confirmar">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-scanner">
+        <div class="modal-content modal-scanner-content">
+            <h3>Escanear Código</h3>
+            <div id="reader"></div>
+            <div class="modal-actions">
+                <button id="btn-cancelar-scan" class="btn-cancelar-custom">
+                    <img src="img/deny_icon.svg" class="icon-md" alt="Cancelar">
+                    <span>Cancelar</span>
                 </button>
             </div>
         </div>

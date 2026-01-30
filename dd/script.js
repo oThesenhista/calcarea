@@ -99,33 +99,69 @@ window.addEventListener('load', () => {
         }
     }
 
-    btnScan.addEventListener('click', () => {
-        const readerDiv = document.getElementById('reader');
-        if (!scanner) {
-            readerDiv.style.display = 'block';
-            scanner = new Html5Qrcode("reader");
-            scanner.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 150 } },
-                (decodedText) => {
-                    caixaBusca.value = decodedText;
-                    buscar();
-                    scanner.stop().then(() => {
-                        scanner = null;
-                        readerDiv.style.display = 'none';
-                    });
-                }
-            ).catch(err => {
-                alert("Erro ao abrir câmera: " + err);
-                readerDiv.style.display = 'none';
-            });
-        } else {
+    // --- CÓDIGO DO SCANNER (ATUALIZADO PARA MODAL) ---
+    const modalScanner = document.getElementById('modal-scanner');
+    const btnCancelarScan = document.getElementById('btn-cancelar-scan');
+
+    function fecharScanner() {
+        if (scanner) {
             scanner.stop().then(() => {
                 scanner = null;
-                readerDiv.style.display = 'none';
+                modalScanner.style.display = 'none';
+            }).catch(err => {
+                console.error("Erro ao parar scanner", err);
+                modalScanner.style.display = 'none';
+                scanner = null;
             });
+        } else {
+            modalScanner.style.display = 'none';
+        }
+    }
+
+    btnScan.addEventListener('click', () => {
+        // Abre o modal
+        modalScanner.style.display = 'flex';
+        
+        // Se já tiver scanner rodando (improvável mas previne erro), para.
+        if (scanner) return;
+
+        scanner = new Html5Qrcode("reader");
+        
+        const configScanner = { 
+            fps: 10, 
+            // QRBOX Retangular: foca a leitura numa faixa horizontal (bom para cód barras)
+            qrbox: { width: 280, height: 80 },
+            aspectRatio: 1.0
+        };
+
+        scanner.start(
+            { facingMode: "environment" }, 
+            configScanner,
+            (decodedText) => {
+                // SUCESSO NA LEITURA
+                caixaBusca.value = decodedText;
+                buscar(); // Executa a busca
+                fecharScanner(); // Fecha o modal automaticamente
+            },
+            (errorMessage) => {
+                // Erros de leitura constantes (ignorar ou logar se necessário)
+            }
+        ).catch(err => {
+            alert("Erro ao abrir câmera: " + err);
+            modalScanner.style.display = 'none';
+        });
+    });
+
+    // Botão de cancelar dentro do modal
+    btnCancelarScan.addEventListener('click', fecharScanner);
+
+    // Fechar se clicar fora (na parte escura do modal)
+    modalScanner.addEventListener('click', (e) => {
+        if (e.target === modalScanner) {
+            fecharScanner();
         }
     });
+
 
     // --- FUNÇÕES ORIGINAIS ---
     function limparOrcamento() {

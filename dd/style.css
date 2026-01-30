@@ -433,8 +433,53 @@ td { border: none !important; }
 .rodape-botoes-wrapper #btn-limpar-orcamento, .rodape-botoes-wrapper #btn-limpar-etiquetas { background-color: var(--cor-perigo); }
 
 /* --- ADIÇÕES PARA SCANNER E MOBILE --- */
-#reader { width: 100%; display: none; margin-top: 10px; border-radius: 8px; overflow: hidden; }
 .mobile-only-btn { display: none; background: var(--cor-principal); color: white; border: none; border-radius: 4px; padding: 0 15px; cursor: pointer; font-size: 1.2em; }
+
+/* --- ESTILOS DO MODAL SCANNER (NOVO) --- */
+.modal-scanner-content {
+    width: 90%;
+    max-width: 600px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#reader {
+    width: 100%;
+    /* Altura fixa ajuda a criar o efeito de crop vertical visual */
+    height: 300px; 
+    background-color: #000;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Força o vídeo a preencher o espaço (crop visual) */
+#reader video {
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.btn-cancelar-custom {
+    background-color: var(--cor-perigo);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-cancelar-custom:hover {
+    background-color: var(--cor-perigo-hover);
+}
+.btn-cancelar-custom img {
+    filter: brightness(0) invert(1);
+}
 
 @media (max-width: 768px) {
     .container { flex-direction: column !important; height: auto !important; overflow-y: auto !important; padding-bottom: 60px; /* Espaço para o footer fixo */ }
