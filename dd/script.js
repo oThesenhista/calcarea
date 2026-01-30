@@ -99,7 +99,7 @@ window.addEventListener('load', () => {
         }
     }
 
-    // --- CÓDIGO DO SCANNER (ATUALIZADO) ---
+    // --- CÓDIGO DO SCANNER (ATUALIZADO PARA CSS USER) ---
     const modalScanner = document.getElementById('modal-scanner');
     const btnCancelarScan = document.getElementById('btn-cancelar-scan');
 
@@ -129,6 +129,7 @@ window.addEventListener('load', () => {
         
         const configScanner = { 
             fps: 10, 
+            // QRBOX Retangular 280x80px (ideal para barcode e cabe bem no reader de 200px)
             qrbox: { width: 280, height: 80 },
             aspectRatio: 1.0
         };
