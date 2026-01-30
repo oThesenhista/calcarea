@@ -130,7 +130,7 @@ window.addEventListener('load', () => {
         const configScanner = { 
             fps: 10, 
             // QRBOX Retangular 280x80px (ideal para barcode e cabe bem no reader de 200px)
-            qrbox: { width: 280, height: 80 },
+            qrbox: { width: 280, height: 40 },
             aspectRatio: 1.0
         };
 
