@@ -99,7 +99,7 @@ window.addEventListener('load', () => {
         }
     }
 
-    // --- CÓDIGO DO SCANNER (ATUALIZADO PARA MODAL) ---
+    // --- CÓDIGO DO SCANNER (ATUALIZADO) ---
     const modalScanner = document.getElementById('modal-scanner');
     const btnCancelarScan = document.getElementById('btn-cancelar-scan');
 
@@ -129,7 +129,6 @@ window.addEventListener('load', () => {
         
         const configScanner = { 
             fps: 10, 
-            // QRBOX Retangular: foca a leitura numa faixa horizontal (bom para cód barras)
             qrbox: { width: 280, height: 80 },
             aspectRatio: 1.0
         };
@@ -144,10 +143,11 @@ window.addEventListener('load', () => {
                 fecharScanner(); // Fecha o modal automaticamente
             },
             (errorMessage) => {
-                // Erros de leitura constantes (ignorar ou logar se necessário)
+                // Erros de leitura
             }
         ).catch(err => {
-            alert("Erro ao abrir câmera: " + err);
+            // ALERTA IMPORTANTE PARA MOBILE
+            alert("Erro ao acessar câmera: " + err + "\n\nDica: Em celulares, o site precisa ser HTTPS ou localhost.");
             modalScanner.style.display = 'none';
         });
     });
