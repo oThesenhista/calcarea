@@ -4,11 +4,8 @@ const LAYOUT_CONFIG = {
     'thermal-60x30': { limit: 999 }, 'thermal-25x10': { limit: 999 }, 'thermal-custom': { limit: 999 }
 };
 
-// --- CONFIGURAÇÃO DO DRIVE ---
-// Coloque aqui o ID do seu arquivo Produtos.html do Google Drive
-// Exemplo: se o link é drive.google.com/file/d/12345ABCD/view, o ID é "12345ABCD"
-const GOOGLE_DRIVE_FILE_ID = "1WN_CWGcKIeNcfNViVfYrgICZcqj_QJsf"; 
-// -----------------------------
+// ID extraído do seu link: https://drive.google.com/file/d/1WN_CWGcKIeNcfNViVfYrgICZcqj_QJsf/view
+const GOOGLE_DRIVE_FILE_ID = "1WN_CWGcKIeNcfNViVfYrgICZcqj_QJsf";
 
 window.addEventListener('load', () => {
     const seletorArquivo = document.getElementById('seletorArquivo');
@@ -73,44 +70,50 @@ window.addEventListener('load', () => {
         }
     }
 
-    // --- NOVA FUNÇÃO DE CARREGAMENTO VIA DRIVE ---
+    // --- CARREGAMENTO ROBUSTO COM TIMEOUT ---
     async function carregarProdutosAutomatico() {
-        if (infoDados) infoDados.style.display = 'inline';
-        infoDados.textContent = "Buscando dados...";
+        if (infoDados) {
+            infoDados.style.display = 'inline';
+            infoDados.textContent = "Buscando Drive...";
+            infoDados.className = 'status-info'; // Reset cor
+        }
 
-        // URL Direta do Google Drive (Costuma ser bloqueada por CORS)
-        const driveUrl = `https://drive.google.com/uc?export=download&id=${GOOGLE_DRIVE_FILE_ID}`;
-        
-        // Usamos um Proxy (allorigins) para contornar o bloqueio de CORS do Google
-        // Isso permite que o Github Pages leia o arquivo do Drive
+        // Adiciona timestamp para evitar cache velho
+        const driveUrl = `https://drive.google.com/uc?export=download&id=${GOOGLE_DRIVE_FILE_ID}&cb=${Date.now()}`;
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
 
+        // Controlador de tempo (Timeout de 5 segundos)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         try {
-            // Tenta buscar do Drive via Proxy
-            let response = await fetch(proxyUrl);
-            
-            // Se o ID estiver vazio ou der erro no proxy, tenta buscar localmente (fallback)
-            if (!response.ok || GOOGLE_DRIVE_FILE_ID === "SEU_ID_DO_ARQUIVO_AQUI") {
-                console.log("Tentando buscar arquivo local (produtos.html)...");
-                response = await fetch('produtos.html');
-            }
+            const response = await fetch(proxyUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
 
             if (response.ok) {
                 const texto = await response.text();
-                // Verifica se o texto parece HTML válido antes de processar
+                // Validação básica se é um HTML de produtos
                 if (texto.includes('<table') || texto.includes('<tr')) {
                     processarConteudoHTML(texto, true);
-                    console.log("Produtos carregados com sucesso.");
-                } else {
-                    throw new Error("Arquivo inválido ou vazio");
+                    return; // Sucesso, encerra a função aqui
                 }
-            } else {
-                throw new Error("Não foi possível carregar de nenhuma fonte");
             }
-        } catch (e) { 
-            console.error("Erro ao carregar:", e);
-            infoDados.textContent = "Usando cache local";
-            carregarDadosDaMemoria(); 
+            throw new Error("Resposta inválida do Drive");
+        } catch (e) {
+            console.warn("Falha no Drive ou Timeout, usando fallback local...", e);
+            if (infoDados) infoDados.textContent = "Usando Local...";
+            
+            // Tenta carregar o arquivo local se o Drive falhar
+            try {
+                const respLocal = await fetch('produtos.html');
+                if (respLocal.ok) {
+                    processarConteudoHTML(await respLocal.text(), true);
+                } else {
+                    throw new Error("Arquivo local não encontrado");
+                }
+            } catch (errLocal) {
+                carregarDadosDaMemoria(); // Último recurso: LocalStorage
+            }
         }
     }
 
@@ -197,13 +200,8 @@ window.addEventListener('load', () => {
         if (dados) {
             fullProductList = JSON.parse(dados); filteredProductList = [...fullProductList];
             const btn = document.querySelector('.upload-button'); btn.classList.remove('status-green','status-yellow','status-red');
-            
-            // Verifica data
             let dataSalva = localStorage.getItem('dataAtualizacao');
-            // Se veio do Drive, a data pode estar em um formato diferente ou não existir, 
-            // então assumimos que se tem dados, está ok.
-            if (!dataSalva) dataSalva = new Date(); 
-            
+            if (!dataSalva) dataSalva = new Date();
             const dif = Math.ceil((new Date() - new Date(dataSalva)) / 86400000);
             btn.classList.add(dif <= 1 ? 'status-green' : dif <= 7 ? 'status-yellow' : 'status-red');
             caixaBusca.disabled = false; loadNextBatch(true);
@@ -226,12 +224,17 @@ window.addEventListener('load', () => {
             } else { 
                 fullProductList = arr; 
                 filteredProductList = [...fullProductList]; 
-                infoDados.textContent = "Lista Atualizada (Drive)"; 
                 
-                // Atualiza cor do botão para verde
+                // Feedback visual de sucesso
+                if (infoDados) {
+                    infoDados.textContent = "Lista Atualizada (Drive)";
+                    infoDados.style.color = "green";
+                }
                 const btn = document.querySelector('.upload-button');
-                btn.classList.remove('status-green','status-yellow','status-red');
-                btn.classList.add('status-green');
+                if(btn) {
+                    btn.classList.remove('status-green','status-yellow','status-red');
+                    btn.classList.add('status-green');
+                }
                 
                 loadNextBatch(true); 
             }
@@ -432,7 +435,7 @@ window.addEventListener('load', () => {
     const d = new Date();
     document.getElementById('data-orcamento').textContent = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} - ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     
-    // CHAMADA INICIAL: Tenta carregar do drive. Se falhar, tenta cache local.
+    // Tenta carregar do drive, se falhar ou travar, vai para o local
     carregarProdutosAutomatico(); 
     
     carregarClientes();
