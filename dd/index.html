@@ -2,8 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Busca e Orçamento de Produtos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Busca e Orçamento</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -19,13 +22,11 @@
             <div id="tab-produtos" class="tab-content active-content">
                 <div id="busca-wrapper">
                     <h1>Busca de Produtos</h1>
-                    
                     <div class="input-com-botao-wrapper">
                         <input type="text" id="caixaBusca" placeholder="Buscar por nome ou código...">
                         <button id="btn-scan" class="mobile-only-btn" title="Escanear Código">
                             <img src="img/scan_icon.svg" class="icon-md" alt="Scan">
                         </button>
-                        
                         <div class="area-carregamento">
                             <label for="seletorArquivo" class="upload-button status-red" title="Atualizar Lista">
                                 <img src="img/upload_icon.svg" class="icon-md" alt="Upload">
@@ -35,7 +36,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <h2>Resultados da Busca</h2>
                 <div id="resultados"><p class="placeholder">Aguardando dados...</p></div>
             </div>
@@ -43,7 +43,6 @@
             <div id="tab-clientes" class="tab-content">
                 <div class="cliente-wrapper-busca">
                     <h1>Gerenciar Clientes</h1>
-
                     <div class="input-com-botao-wrapper">
                         <input type="text" id="caixaBuscaClientes" placeholder="Buscar cliente por nome ou CPF...">
                         <div class="botoes-clientes">
@@ -71,9 +70,7 @@
             
             <div id="tab-orcamento-view" class="tab-content-direita active-content-direita">
                 <div id="orcamento-cabecalho">
-                    <div id="logo">
-                        <img src="img/logo.png">
-                    </div>
+                    <div id="logo"><img src="img/logo.png"></div>
                     <div id="dados-loja">
                         FONE: (11) 2233-3734 / (11) 2231-4616 <br> WHATSAPP: (11) 9 3924-6851 <br> 				
                         AV. MARIANA CALIGIORI RONCHETTI, 1215 <br> JD. PERI - SÃO PAULO SP CEP: 02650-000 <br>
@@ -95,13 +92,14 @@
                         <div class="campo-cliente"><input type="text" id="cliente-telefone" class="valor-input"><span class="valor-print"></span></div>
                         <div class="campo-cliente hide-mobile"><input type="text" id="cliente-cpf" class="valor-input"><span class="valor-print"></span></div>
                         <div class="campo-cliente hide-mobile"><input type="text" id="cliente-responsavel" class="valor-input"><span class="valor-print"></span></div>
-                        
-                        <div id="campo-salvar">
-                            <datalist id="lista-clientes"></datalist>
-                        </div>
+                        <div id="campo-salvar"><datalist id="lista-clientes"></datalist></div>
                     </div>
                 </div>
-                <span id="data-orcamento" class="valor-print">23/09/2025 - 13:13</span>
+                
+                <div class="info-pedido-wrapper">
+                    <span id="data-orcamento" class="valor-print"></span>
+                    <span class="pedido-id">Pedido: <strong id="numero-pedido-valor"></strong></span>
+                </div>
 
                 <div id="orcamento-itens"><p class="placeholder">Nenhum item adicionado.</p></div>
                 
@@ -131,7 +129,6 @@
                             <span class="btn-text">Limpar</span>
                         </button>
                     </div>
-                    
                     <div id="orcamento-total">Total: R$ 0,00</div>
                 </div>
             </div>
@@ -150,7 +147,6 @@
                             <option value="thermal-custom">Térmica Custom</option>
                         </select>
                     </div>
-                    
                     <div id="custom-dimensions" style="display: none; gap: 5px; align-items: center;">
                         <input type="number" id="custom-width" placeholder="L(mm)" style="width: 60px;">
                         <span>x</span>
@@ -164,7 +160,6 @@
 
                 <div id="etiquetas-rodape" class="rodape-padrao">
                     <div class="campo-vendedor-placeholder"></div>
-
                     <div class="rodape-botoes-wrapper">
                         <div class="campo-check-etiqueta" id="div-check-simples" style="margin-right: 10px;">
                             <input type="checkbox" id="check-etiqueta-unica" class="hidden-checkbox">
@@ -172,7 +167,6 @@
                                 <img src="img/code_icon.svg" class="icon-md" alt="Code">
                             </label>
                         </div>
-
                         <button id="btn-imprimir-etiquetas" title="Imprimir Etiquetas">
                             <img src="img/print_code_icon.svg" class="icon-md" alt="Print Code">
                             <span class="btn-text">Imprimir</span>
@@ -182,7 +176,6 @@
                             <span class="btn-text">Limpar</span>
                         </button>
                     </div>
-                    
                     <div id="orcamento-total" class="placeholder-total"></div>
                 </div>
             </div>
@@ -193,22 +186,16 @@
         <div class="modal-content">
             <h3 id="modal-produto-nome"></h3>
             <div class="modal-actions">
-                <button id="btn-cancelar-qtde">
-                    <img src="img/deny_icon.svg" class="icon-xl" alt="Cancelar">
-                </button>
+                <button id="btn-cancelar-qtde"><img src="img/deny_icon.svg" class="icon-xl" alt="Cancelar"></button>
                 <input type="number" id="input-qtde" value="1" min="0.01" step="any">
-                <button id="btn-confirmar-qtde">
-                    <img src="img/check_icon.svg" class="icon-xl" alt="Confirmar">
-                </button>
+                <button id="btn-confirmar-qtde"><img src="img/check_icon.svg" class="icon-xl" alt="Confirmar"></button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="modal-scanner">
         <div class="modal-content modal-scanner-content">
-            <button id="btn-cancelar-scan" class="btn-close-modal">
-                <img src="img/deny_icon.svg" alt="Fechar">
-            </button>
+            <button id="btn-cancelar-scan" class="btn-close-modal"><img src="img/deny_icon.svg" alt="Fechar"></button>
             <div id="reader"></div>
         </div>
     </div>
