@@ -4,6 +4,12 @@ const LAYOUT_CONFIG = {
     'thermal-60x30': { limit: 999 }, 'thermal-25x10': { limit: 999 }, 'thermal-custom': { limit: 999 }
 };
 
+// --- CONFIGURAÇÃO DO DRIVE ---
+// Coloque aqui o ID do seu arquivo Produtos.html do Google Drive
+// Exemplo: se o link é drive.google.com/file/d/12345ABCD/view, o ID é "12345ABCD"
+const GOOGLE_DRIVE_FILE_ID = "1WN_CWGcKIeNcfNViVfYrgICZcqj_QJsf"; 
+// -----------------------------
+
 window.addEventListener('load', () => {
     const seletorArquivo = document.getElementById('seletorArquivo');
     const infoDados = document.getElementById('info-dados');
@@ -67,13 +73,45 @@ window.addEventListener('load', () => {
         }
     }
 
+    // --- NOVA FUNÇÃO DE CARREGAMENTO VIA DRIVE ---
     async function carregarProdutosAutomatico() {
         if (infoDados) infoDados.style.display = 'inline';
+        infoDados.textContent = "Buscando dados...";
+
+        // URL Direta do Google Drive (Costuma ser bloqueada por CORS)
+        const driveUrl = `https://drive.google.com/uc?export=download&id=${GOOGLE_DRIVE_FILE_ID}`;
+        
+        // Usamos um Proxy (allorigins) para contornar o bloqueio de CORS do Google
+        // Isso permite que o Github Pages leia o arquivo do Drive
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
+
         try {
-            const response = await fetch('produtos.html');
-            if (response.ok) processarConteudoHTML(await response.text(), true);
-            else throw new Error("Não encontrado");
-        } catch (e) { carregarDadosDaMemoria(); }
+            // Tenta buscar do Drive via Proxy
+            let response = await fetch(proxyUrl);
+            
+            // Se o ID estiver vazio ou der erro no proxy, tenta buscar localmente (fallback)
+            if (!response.ok || GOOGLE_DRIVE_FILE_ID === "SEU_ID_DO_ARQUIVO_AQUI") {
+                console.log("Tentando buscar arquivo local (produtos.html)...");
+                response = await fetch('produtos.html');
+            }
+
+            if (response.ok) {
+                const texto = await response.text();
+                // Verifica se o texto parece HTML válido antes de processar
+                if (texto.includes('<table') || texto.includes('<tr')) {
+                    processarConteudoHTML(texto, true);
+                    console.log("Produtos carregados com sucesso.");
+                } else {
+                    throw new Error("Arquivo inválido ou vazio");
+                }
+            } else {
+                throw new Error("Não foi possível carregar de nenhuma fonte");
+            }
+        } catch (e) { 
+            console.error("Erro ao carregar:", e);
+            infoDados.textContent = "Usando cache local";
+            carregarDadosDaMemoria(); 
+        }
     }
 
     function fecharScanner() {
@@ -159,7 +197,14 @@ window.addEventListener('load', () => {
         if (dados) {
             fullProductList = JSON.parse(dados); filteredProductList = [...fullProductList];
             const btn = document.querySelector('.upload-button'); btn.classList.remove('status-green','status-yellow','status-red');
-            const dif = Math.ceil((new Date() - new Date(localStorage.getItem('dataAtualizacao'))) / 86400000);
+            
+            // Verifica data
+            let dataSalva = localStorage.getItem('dataAtualizacao');
+            // Se veio do Drive, a data pode estar em um formato diferente ou não existir, 
+            // então assumimos que se tem dados, está ok.
+            if (!dataSalva) dataSalva = new Date(); 
+            
+            const dif = Math.ceil((new Date() - new Date(dataSalva)) / 86400000);
             btn.classList.add(dif <= 1 ? 'status-green' : dif <= 7 ? 'status-yellow' : 'status-red');
             caixaBusca.disabled = false; loadNextBatch(true);
         }
@@ -172,9 +217,24 @@ window.addEventListener('load', () => {
             if (td.length === 3) arr.push({ codigo: td[0].textContent.trim(), nome: td[1].textContent.trim(), preco: td[2].textContent.trim() });
         });
         if (arr.length > 0) {
-            localStorage.setItem('meusProdutos', JSON.stringify(arr)); localStorage.setItem('dataAtualizacao', new Date().toLocaleString('pt-BR'));
-            if (!silencioso) { alert(`${arr.length} produtos carregados!`); location.reload(); }
-            else { fullProductList = arr; filteredProductList = [...fullProductList]; infoDados.textContent = "Lista: " + localStorage.getItem('dataAtualizacao'); loadNextBatch(true); }
+            localStorage.setItem('meusProdutos', JSON.stringify(arr)); 
+            localStorage.setItem('dataAtualizacao', new Date().toLocaleString('pt-BR'));
+            
+            if (!silencioso) { 
+                alert(`${arr.length} produtos carregados!`); 
+                location.reload(); 
+            } else { 
+                fullProductList = arr; 
+                filteredProductList = [...fullProductList]; 
+                infoDados.textContent = "Lista Atualizada (Drive)"; 
+                
+                // Atualiza cor do botão para verde
+                const btn = document.querySelector('.upload-button');
+                btn.classList.remove('status-green','status-yellow','status-red');
+                btn.classList.add('status-green');
+                
+                loadNextBatch(true); 
+            }
         }
     }
 
@@ -371,6 +431,10 @@ window.addEventListener('load', () => {
 
     const d = new Date();
     document.getElementById('data-orcamento').textContent = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} - ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    carregarProdutosAutomatico(); carregarClientes();
+    
+    // CHAMADA INICIAL: Tenta carregar do drive. Se falhar, tenta cache local.
+    carregarProdutosAutomatico(); 
+    
+    carregarClientes();
     vendedorPrintSpan.textContent = selectVendedor.value;
 });
