@@ -4,8 +4,10 @@ const LAYOUT_CONFIG = {
     'thermal-60x30': { limit: 999 }, 'thermal-25x10': { limit: 999 }, 'thermal-custom': { limit: 999 }
 };
 
-// ID extraído do seu link: https://drive.google.com/file/d/1WN_CWGcKIeNcfNViVfYrgICZcqj_QJsf/view
-const GOOGLE_DRIVE_FILE_ID = "1WN_CWGcKIeNcfNViVfYrgICZcqj_QJsf";
+// --- CONFIGURAÇÃO DEFINITIVA (APPS SCRIPT) ---
+// Cole abaixo a URL gerada no passo "Implantar" do Google Apps Script
+// Deve terminar com /exec
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlbophlaM3QbSb5zV7VRUb5j3hD85t82RGbEgBmVsU70_H0htbVlMAtI9ixctOctbl/exec"; 
 
 window.addEventListener('load', () => {
     const seletorArquivo = document.getElementById('seletorArquivo');
@@ -70,50 +72,52 @@ window.addEventListener('load', () => {
         }
     }
 
-    // --- CARREGAMENTO ROBUSTO COM TIMEOUT ---
+    // --- CARREGAMENTO VIA APPS SCRIPT ---
     async function carregarProdutosAutomatico() {
         if (infoDados) {
             infoDados.style.display = 'inline';
-            infoDados.textContent = "Buscando Drive...";
-            infoDados.className = 'status-info'; // Reset cor
+            infoDados.textContent = "Sincronizando...";
+            infoDados.className = 'status-info';
         }
 
-        // Adiciona timestamp para evitar cache velho
-        const driveUrl = `https://drive.google.com/uc?export=download&id=${GOOGLE_DRIVE_FILE_ID}&cb=${Date.now()}`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(driveUrl)}`;
-
-        // Controlador de tempo (Timeout de 5 segundos)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        // Verifica se o usuário configurou a URL
+        if (APPS_SCRIPT_URL.includes("COLE_AQUI")) {
+            console.warn("URL do Apps Script não configurada.");
+            carregarFallbackLocal();
+            return;
+        }
 
         try {
-            const response = await fetch(proxyUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
+            const response = await fetch(APPS_SCRIPT_URL);
+            
             if (response.ok) {
                 const texto = await response.text();
-                // Validação básica se é um HTML de produtos
+                // Verifica se retornou erro do script ou HTML válido
+                if (texto.startsWith("Erro:")) throw new Error(texto);
+                
                 if (texto.includes('<table') || texto.includes('<tr')) {
                     processarConteudoHTML(texto, true);
-                    return; // Sucesso, encerra a função aqui
+                    return; 
                 }
             }
-            throw new Error("Resposta inválida do Drive");
+            throw new Error("Erro na resposta do servidor");
         } catch (e) {
-            console.warn("Falha no Drive ou Timeout, usando fallback local...", e);
-            if (infoDados) infoDados.textContent = "Usando Local...";
-            
-            // Tenta carregar o arquivo local se o Drive falhar
-            try {
-                const respLocal = await fetch('produtos.html');
-                if (respLocal.ok) {
-                    processarConteudoHTML(await respLocal.text(), true);
-                } else {
-                    throw new Error("Arquivo local não encontrado");
-                }
-            } catch (errLocal) {
-                carregarDadosDaMemoria(); // Último recurso: LocalStorage
+            console.warn("Falha ao sincronizar, usando local...", e);
+            carregarFallbackLocal();
+        }
+    }
+
+    async function carregarFallbackLocal() {
+        if (infoDados) infoDados.textContent = "Usando Local...";
+        try {
+            const respLocal = await fetch('produtos.html');
+            if (respLocal.ok) {
+                processarConteudoHTML(await respLocal.text(), true);
+            } else {
+                throw new Error("Arquivo local não encontrado");
             }
+        } catch (errLocal) {
+            carregarDadosDaMemoria();
         }
     }
 
@@ -225,9 +229,8 @@ window.addEventListener('load', () => {
                 fullProductList = arr; 
                 filteredProductList = [...fullProductList]; 
                 
-                // Feedback visual de sucesso
                 if (infoDados) {
-                    infoDados.textContent = "Lista Atualizada (Drive)";
+                    infoDados.textContent = "Sincronizado (Drive)";
                     infoDados.style.color = "green";
                 }
                 const btn = document.querySelector('.upload-button');
@@ -235,7 +238,6 @@ window.addEventListener('load', () => {
                     btn.classList.remove('status-green','status-yellow','status-red');
                     btn.classList.add('status-green');
                 }
-                
                 loadNextBatch(true); 
             }
         }
@@ -434,10 +436,6 @@ window.addEventListener('load', () => {
 
     const d = new Date();
     document.getElementById('data-orcamento').textContent = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} - ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    
-    // Tenta carregar do drive, se falhar ou travar, vai para o local
-    carregarProdutosAutomatico(); 
-    
-    carregarClientes();
+    carregarProdutosAutomatico(); carregarClientes();
     vendedorPrintSpan.textContent = selectVendedor.value;
 });
